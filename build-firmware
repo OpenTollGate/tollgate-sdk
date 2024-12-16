@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
 # Check and install libncurses5-dev and libncursesw5-dev libraries
 install_ncurses_libraries() {
     if ! dpkg -s libncurses5-dev libncursesw5-dev >/dev/null 2>&1; then
@@ -17,19 +12,8 @@ install_ncurses_libraries() {
     fi
 }
 
-# Function to manually download, build, and install opkg-utils
-install_opkg_make_index() {
-    if ! command_exists opkg-make-index; then
-        echo "Installing opkg-utils manually..."
-	./install_opkg_utils.sh
-    else
-        echo "opkg-make-index command is already available."
-    fi
-}
-
 # Main script logic
 install_ncurses_libraries
-# install_opkg_make_index
 
 # Check if the required arguments are provided
 if [ $# -ne 1 ]; then
@@ -41,48 +25,48 @@ PACKAGE_NAME=$1
 VERSION=23.05.3
 SDKDIR=/tmp/openwrt-sdk
 PLATFORM="ramips"
-SUBTARGET="mt76x8"  # Modify this according to your target subtarget
+SUBTARGET="mt76x8"
 SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
 DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 
 # Prepare SDK directory
-if [ ! -d ${SDKDIR} ] ; then
-  mkdir -p ${SDKDIR}
+if [ ! -d "${SDKDIR}" ] ; then
+  mkdir -p "${SDKDIR}"
 fi
 
-if [ ! -d ${SDKDIR}/openwrt-sdk ] ; then
-  if [ ! -f ${SDKDIR}/${SDK_ARCHIVE} ]; then
-    (cd ${SDKDIR} && curl -O ${DOWNLOAD_URL})
+if [ ! -d "${SDKDIR}/openwrt-sdk" ] ; then
+  if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
+    (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
   fi
-  tar -xf ${SDKDIR}/${SDK_ARCHIVE} -C ${SDKDIR}
+  tar -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 fi
 
-SDK_PATH=$(find ${SDKDIR} -maxdepth 1 -type d -name "openwrt-sdk-*")
-cd ${SDK_PATH}
+SDK_PATH=$(find "${SDKDIR}" -maxdepth 1 -type d -name "openwrt-sdk-*")
+cd "${SDK_PATH}"
 
 # Update and install feeds
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
 # Copy the custom package into the SDK
-cp -r ~/TollGate/openwrt_helloworld/${PACKAGE_NAME} package/
+cp -r ~/TollGate/openwrt_helloworld/"${PACKAGE_NAME}" package/
 
 # Configure the SDK to include the package
 make defconfig
 
 # Build the package
-make package/${PACKAGE_NAME}/compile V=s
+make package/"${PACKAGE_NAME}"/compile V=s
 
 # Move built package to a local directory
 BUILT_PACKAGE_PATH=$(find bin/packages -name "${PACKAGE_NAME}_*.ipk")
 DEST_DIR=~/local_feed
 
-mkdir -p ${DEST_DIR}
-cp ${BUILT_PACKAGE_PATH} ${DEST_DIR}
+mkdir -p "${DEST_DIR}"
+cp "${BUILT_PACKAGE_PATH}" "${DEST_DIR}"
 
-# Generate package index
-cd ${DEST_DIR}
-opkg-make-index . > Packages
+# Generate package index using opkg-make-index from the SDK
+cd "${DEST_DIR}"
+"${SDK_PATH}"/staging_dir/host/bin/opkg-make-index . > Packages
 gzip -k Packages
 
 echo "Package ${PACKAGE_NAME} has been built and stored in ${DEST_DIR}"
