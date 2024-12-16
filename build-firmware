@@ -17,12 +17,11 @@ install_ncurses_libraries() {
     fi
 }
 
-# Install opkg-utils if opkg-make-index is not available
+# Function to manually download, build, and install opkg-utils
 install_opkg_make_index() {
     if ! command_exists opkg-make-index; then
-        echo "Installing opkg-utils package..."
-        sudo apt-get update
-        sudo apt-get install -y opkg-utils
+        echo "Installing opkg-utils manually..."
+	./install_opkg_utils.sh
     else
         echo "opkg-make-index command is already available."
     fi
@@ -30,7 +29,13 @@ install_opkg_make_index() {
 
 # Main script logic
 install_ncurses_libraries
-install_opkg_make_index
+# install_opkg_make_index
+
+# Check if the required arguments are provided
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <package_name>"
+    exit 1
+fi
 
 PACKAGE_NAME=$1
 VERSION=23.05.3

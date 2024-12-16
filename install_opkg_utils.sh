@@ -10,7 +10,7 @@ command_exists() {
 install_dependencies() {
     echo "Installing build dependencies..."
     sudo apt-get update
-    sudo apt-get install -y build-essential autoconf automake libtool pkg-config git
+    sudo apt-get install -y build-essential autoconf automake libtool pkg-config git cmake
 }
 
 # Function to build and install opkg-utils
