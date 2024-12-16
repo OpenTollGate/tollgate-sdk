@@ -1,0 +1,60 @@
+#!/bin/bash
+set -e
+
+# Check if the required arguments are provided
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <package_name>"
+  exit 1
+fi
+
+PACKAGE_NAME=$1
+VERSION=23.05.3
+SDKDIR=/tmp/openwrt-sdk
+ARCHITECTURE="ramips/mt76x8"  # Modify this according to your target architecture
+SDK_ARCHIVE="openwrt-sdk-${VERSION}-${ARCHITECTURE}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${ARCHITECTURE}/${SDK_ARCHIVE}"
+
+# Prepare SDK directory
+if [ ! -d ${SDKDIR} ] ; then
+  mkdir -p ${SDKDIR}
+fi
+
+if [ ! -d ${SDKDIR}/openwrt-sdk ] ; then
+  if [ ! -f ${SDKDIR}/${SDK_ARCHIVE} ]; then
+    (cd ${SDKDIR} && curl -O ${DOWNLOAD_URL})
+  fi
+  tar -xf ${SDKDIR}/${SDK_ARCHIVE} -C ${SDKDIR}
+fi
+
+SDK_PATH=$(find ${SDKDIR} -maxdepth 1 -type d -name "openwrt-sdk-*")
+cd ${SDK_PATH}
+
+# Update and install feeds
+./scripts/feeds update -a
+./scripts/feeds install -a
+
+# Copy the custom package into the SDK
+cp -r ~/TollGate/openwrt_helloworld/${PACKAGE_NAME} package/
+
+# Configure the SDK to include the package
+make menuconfig << EOF
+1
+e
+EOF
+
+# Build the package
+make package/${PACKAGE_NAME}/compile V=s
+
+# Move built package to a local directory
+BUILT_PACKAGE_PATH=$(find bin/packages -name "${PACKAGE_NAME}_*.ipk")
+DEST=~/local_feed
+
+mkdir -p ${DEST_DIR}
+cp ${BUILT_PACKAGE_PATH} ${DEST_DIR}
+
+# Generate package index
+cd ${DEST_DIR}
+opkg-make-index . > Packages
+gzip -k Packages
+
+echo "Package ${PACKAGE_NAME} has been built and stored in ${DEST_DIR}"
