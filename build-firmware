@@ -7,6 +7,15 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
+# Check if libncurses5-dev and libncursesw5-dev are installed
+if ! dpkg -s libncurses5-dev libncursesw5-dev >/dev/null 2>&1; then
+  echo "Installing libncurses5-dev and libncursesw5-dev packages..."
+  sudo apt-get update
+  sudo apt-get install -y libncurses5-dev libncursesw5-dev
+else
+  echo "libncurses5-dev and libncursesw5-dev are already installed."
+fi
+
 PACKAGE_NAME=$1
 VERSION=23.05.3
 SDKDIR=/tmp/openwrt-sdk
