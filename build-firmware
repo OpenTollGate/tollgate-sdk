@@ -10,9 +10,10 @@ fi
 PACKAGE_NAME=$1
 VERSION=23.05.3
 SDKDIR=/tmp/openwrt-sdk
-ARCHITECTURE="ramips/mt76x8"  # Modify this according to your target architecture
-SDK_ARCHIVE="openwrt-sdk-${VERSION}-${ARCHITECTURE}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
-DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${ARCHITECTURE}/${SDK_ARCHIVE}"
+PLATFORM="ramips"
+SUBTARGET="mt76x8"  # Modify this according to your target subtarget
+SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 
 # Prepare SDK directory
 if [ ! -d ${SDKDIR} ] ; then
@@ -37,17 +38,14 @@ cd ${SDK_PATH}
 cp -r ~/TollGate/openwrt_helloworld/${PACKAGE_NAME} package/
 
 # Configure the SDK to include the package
-make menuconfig << EOF
-1
-e
-EOF
+make defconfig
 
 # Build the package
 make package/${PACKAGE_NAME}/compile V=s
 
 # Move built package to a local directory
 BUILT_PACKAGE_PATH=$(find bin/packages -name "${PACKAGE_NAME}_*.ipk")
-DEST=~/local_feed
+DEST_DIR=~/local_feed
 
 mkdir -p ${DEST_DIR}
 cp ${BUILT_PACKAGE_PATH} ${DEST_DIR}
