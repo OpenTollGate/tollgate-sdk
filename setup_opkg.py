@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="opkg-utils",
@@ -10,13 +10,10 @@ setup(
         'opkg-compare-indexes',
         'opkg-diff',
         'opkg-extract-file',
-        'opkg-feed',
-        'opkg-graph-deps',
         'opkg-list-fields',
         'opkg-make-index',
         'opkg-show-deps',
         'opkg-unbuild',
-        'opkg-update-index',
-        'update-alternatives'
+        'opkg-update-index'
     ],
 )

@@ -29,32 +29,9 @@ install_opkg_make_index() {
 
 # Add this function to manage Python dependencies
 setup_python_environment() {
-    local sdk_path=$1
-
-    # Install required system packages
-    if ! dpkg -s git python3-pip >/dev/null 2>&1; then
-        echo "Installing required packages..."
-        sudo apt-get update
-        sudo apt-get install -y git python3-pip
-    fi
-
-    # Install pipenv if not present
-    if ! command -v pipenv &> /dev/null; then
-        echo "Installing pipenv..."
-        sudo apt-get update
-        sudo apt-get install -y python3-pip
-        pip3 install --user pipenv
-    fi
-
-    # Ensure PATH includes local bin directory for pipenv
-    export PATH="$HOME/.local/bin:$PATH"
-
-    # Create virtual environment if it doesn't exist
-    if [ ! -d "$HOME/.local/share/virtualenvs" ] || [ -z "$(find $HOME/.local/share/virtualenvs -name 'toll-gate-sdk-*')" ]; then
-        echo "Setting up Python virtual environment..."
-        (pipenv install)
-    fi
-
+    local sdk_path=$1  # Add parameter here
+    ./setup_opkg.sh
+    
     # Create a wrapper script that runs opkg-make-index in the virtual environment
     local wrapper="${sdk_path}/staging_dir/host/bin/opkg-make-index"
     cat > "${wrapper}" << EOF
@@ -67,8 +44,13 @@ EOF
 # Main script logic
 install_ncurses_libraries
 
-# Setup python environment
-setup_python_environment
+# Prepare SDK directory first
+VERSION=23.05.3
+SDKDIR=/tmp/openwrt-sdk
+PLATFORM="ramips"
+SUBTARGET="mt76x8"
+SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 
 # Check if the required arguments are provided
 if [ $# -ne 1 ]; then
@@ -77,12 +59,6 @@ if [ $# -ne 1 ]; then
 fi
 
 PACKAGE_NAME=$1
-VERSION=23.05.3
-SDKDIR=/tmp/openwrt-sdk
-PLATFORM="ramips"
-SUBTARGET="mt76x8"
-SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
-DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 
 # Prepare SDK directory
 if [ ! -d "${SDKDIR}" ] ; then
@@ -98,6 +74,9 @@ fi
 
 SDK_PATH=$(find "${SDKDIR}" -maxdepth 1 -type d -name "openwrt-sdk-*")
 cd "${SDK_PATH}"
+
+# Setup python environment with correct SDK path
+setup_python_environment "${SDK_PATH}"
 
 # Install opkg-make-index
 install_opkg_make_index "${SDK_PATH}"
