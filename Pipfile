@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+opkg-utils = {file = "opkg-requirements.txt"}
+
+[requires]
+python_version = "3"
+
+[pipenv]
+allow_prereleases = true
