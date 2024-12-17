@@ -12,6 +12,21 @@ install_ncurses_libraries() {
     fi
 }
 
+# Install opkg-make-index if not present
+install_opkg_make_index() {
+    local sdk_path=$1
+    local opkg_make_index="${sdk_path}/staging_dir/host/bin/opkg-make-index"
+    
+    if [ ! -f "${opkg_make_index}" ]; then
+        echo "Installing opkg-make-index..."
+        mkdir -p "${sdk_path}/staging_dir/host/bin"
+        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${opkg_make_index}"
+        chmod +x "${opkg_make_index}"
+    else
+        echo "opkg-make-index is already installed."
+    fi
+}
+
 # Main script logic
 install_ncurses_libraries
 
@@ -43,6 +58,9 @@ fi
 
 SDK_PATH=$(find "${SDKDIR}" -maxdepth 1 -type d -name "openwrt-sdk-*")
 cd "${SDK_PATH}"
+
+# Install opkg-make-index
+install_opkg_make_index "${SDK_PATH}"
 
 # Update and install feeds
 ./scripts/feeds update -a
