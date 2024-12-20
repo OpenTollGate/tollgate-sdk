@@ -19,26 +19,7 @@ setup_python_environment() {
     if [ ! -f "${sdk_path}/staging_dir/host/bin/opkg-make-index" ]; then
         echo "Installing opkg-make-index..."
         mkdir -p "${sdk_path}/staging_dir/host/bin"
-        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${sdk_path}/staging_dir/host/bin/opkg-make-index.py"
-        # Create a simple wrapper script
-        cat > "${sdk_path}/staging_dir/host/bin/opkg-make-index" << 'EOF'
-#!/usr/bin/env python3
-import sys
-import os
-import glob
-
-def generate_package_index(directory):
-    packages = []
-    for ipk in glob.glob(os.path.join(directory, "*.ipk")):
-        control = os.popen(f"ar p {ipk} control.tar.gz | tar xzO ./control").read()
-        packages.append(control + "\nFilename: " + os.path.basename(ipk) + "\n")
-    
-    return "\n".join(packages)
-
-if __name__ == "__main__":
-    directory = "." if len(sys.argv) < 2 else sys.argv[1]
-    print(generate_package_index(directory))
-EOF
+        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${sdk_path}/staging_dir/host/bin/opkg-make-index"
         chmod +x "${sdk_path}/staging_dir/host/bin/opkg-make-index"
     else
         echo "opkg-make-index is already installed."
