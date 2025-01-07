@@ -26,7 +26,6 @@ setup_python_environment() {
     fi
 }
 
-
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <model> <package_name>"
@@ -69,6 +68,7 @@ esac
 
 SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
 DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
+SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
 
 # Main script logic
 install_ncurses_libraries
@@ -78,14 +78,22 @@ if [ ! -d "${SDKDIR}" ] ; then
     mkdir -p "${SDKDIR}"
 fi
 
-if [ ! -d "${SDKDIR}/openwrt-sdk" ] ; then
-    if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
-        (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
-    fi
-    tar -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+# Clean up existing SDK if it exists
+if [ -d "${SDK_PATH}" ]; then
+    echo "Removing existing SDK directory..."
+    rm -rf "${SDK_PATH}"
 fi
 
-SDK_PATH=$(find "${SDKDIR}" -maxdepth 1 -type d -name "openwrt-sdk-*")
+# Download and extract SDK
+if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
+    echo "Downloading SDK..."
+    (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
+fi
+
+echo "Extracting SDK..."
+tar xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+
+# Change to SDK directory
 cd "${SDK_PATH}"
 
 # Setup python environment with correct SDK path
