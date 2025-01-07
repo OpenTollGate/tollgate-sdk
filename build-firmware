@@ -26,6 +26,26 @@ setup_python_environment() {
     fi
 }
 
+# Add this function to check feeds status
+check_feeds() {
+    local sdk_path=$1
+    
+    # Check if feeds directory exists and has content
+    if [ -d "${sdk_path}/feeds" ] && [ "$(ls -A ${sdk_path}/feeds)" ]; then
+        # Check if package index exists and is recent (less than 1 day old)
+        if [ -f "${sdk_path}/feeds/packages.index" ]; then
+            local file_age=$(( $(date +%s) - $(stat -c %Y "${sdk_path}/feeds/packages.index") ))
+            local day_seconds=86400
+            
+            if [ ${file_age} -lt ${day_seconds} ]; then
+                echo "Feeds are up to date, skipping update..."
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <model> <package_name>"
@@ -99,9 +119,14 @@ cd "${SDK_PATH}"
 # Setup python environment with correct SDK path
 setup_python_environment "${SDK_PATH}"
 
-# Update and install feeds
-./scripts/feeds update -a
-./scripts/feeds install -a
+# Check and update feeds only if necessary
+if ! check_feeds "${SDK_PATH}"; then
+    echo "Updating feeds..."
+    ./scripts/feeds update -a
+    ./scripts/feeds install -a
+else
+    echo "Using existing feeds..."
+fi
 
 # Copy the custom package into the SDK
 cp -r ~/TollGate/openwrt_helloworld/"${PACKAGE_NAME}" package/
@@ -118,13 +143,3 @@ ABSOLUTE_PATH=$(realpath "${BUILT_PACKAGE_PATH}")
 
 echo "Package built successfully!"
 echo "IPK file location: ${ABSOLUTE_PATH}"
-
-# mkdir -p "${DEST_DIR}"
-# cp "${BUILT_PACKAGE_PATH}" "${DEST_DIR}"
-
-# Generate package index using opkg-make-index from the SDK
-# cd "${DEST_DIR}"
-# "${SDK_PATH}"/staging_dir/host/bin/opkg-make-index . > Packages
-# gzip -k Packages
-
-# echo "Package ${PACKAGE_NAME} has been built and stored in ${DEST_DIR}"
