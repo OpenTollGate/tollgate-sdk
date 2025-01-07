@@ -14,7 +14,7 @@ install_ncurses_libraries() {
 
 # Add this function to manage Python dependencies
 setup_python_environment() {
-    local sdk_path=$1  # Add parameter here
+    local sdk_path=$1
     
     if [ ! -f "${sdk_path}/staging_dir/host/bin/opkg-make-index" ]; then
         echo "Installing opkg-make-index..."
@@ -26,35 +26,63 @@ setup_python_environment() {
     fi
 }
 
-# Main script logic
-install_ncurses_libraries
-
-# Prepare SDK directory first
-VERSION=23.05.3
-SDKDIR=/tmp/openwrt-sdk
-PLATFORM="ramips"
-SUBTARGET="mt76x8"
-SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
-DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 
 # Check if the required arguments are provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <package_name>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <model> <package_name>"
     exit 1
 fi
 
-PACKAGE_NAME=$1
+MODEL=$1
+PACKAGE_NAME=$2
+VERSION=23.05.3
+SDKDIR=/tmp/openwrt-sdk
+
+# Set platform variables based on model
+case $MODEL in
+    "gl-mt300n-v2")
+        PLATFORM="ramips"
+        SUBTARGET="mt76x8"
+        ;;
+    "gl-ar300m")
+        PLATFORM="ath79"
+        SUBTARGET="generic"
+        ;;
+    "gl-mt3000"|"gl-mt6000")
+        PLATFORM="mediatek"
+        SUBTARGET="filogic"
+        ;;
+    "gl-e750")
+        VERSION="snapshot"
+        PLATFORM="ath79"
+        SUBTARGET="nand"
+        ;;
+    "archer_mr200")
+        PLATFORM="ramips"
+        SUBTARGET="mt7620"
+        ;;
+    *)
+        echo "Unsupported model. Supported models: gl-mt300n-v2, gl-ar300m, gl-mt3000, gl-mt6000, gl-e750, archer_mr200"
+        exit 1
+        ;;
+esac
+
+SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
+
+# Main script logic
+install_ncurses_libraries
 
 # Prepare SDK directory
 if [ ! -d "${SDKDIR}" ] ; then
-  mkdir -p "${SDKDIR}"
+    mkdir -p "${SDKDIR}"
 fi
 
 if [ ! -d "${SDKDIR}/openwrt-sdk" ] ; then
-  if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
-    (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
-  fi
-  tar -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+    if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
+        (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
+    fi
+    tar -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 fi
 
 SDK_PATH=$(find "${SDKDIR}" -maxdepth 1 -type d -name "openwrt-sdk-*")
@@ -76,16 +104,19 @@ make defconfig
 # Build the package
 make package/"${PACKAGE_NAME}"/compile V=s
 
-# Move built package to a local directory
-BUILT_PACKAGE_PATH=$(find bin/packages -name "${PACKAGE_NAME}_*.ipk")
-DEST_DIR=~/local_feed
+# Find the built package and print its absolute path
+BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages" -name "${PACKAGE_NAME}_*.ipk")
+ABSOLUTE_PATH=$(realpath "${BUILT_PACKAGE_PATH}")
 
-mkdir -p "${DEST_DIR}"
-cp "${BUILT_PACKAGE_PATH}" "${DEST_DIR}"
+echo "Package built successfully!"
+echo "IPK file location: ${ABSOLUTE_PATH}"
+
+# mkdir -p "${DEST_DIR}"
+# cp "${BUILT_PACKAGE_PATH}" "${DEST_DIR}"
 
 # Generate package index using opkg-make-index from the SDK
-cd "${DEST_DIR}"
-"${SDK_PATH}"/staging_dir/host/bin/opkg-make-index . > Packages
-gzip -k Packages
+# cd "${DEST_DIR}"
+# "${SDK_PATH}"/staging_dir/host/bin/opkg-make-index . > Packages
+# gzip -k Packages
 
-echo "Package ${PACKAGE_NAME} has been built and stored in ${DEST_DIR}"
+# echo "Package ${PACKAGE_NAME} has been built and stored in ${DEST_DIR}"
