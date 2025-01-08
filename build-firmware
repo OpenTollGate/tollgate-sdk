@@ -46,6 +46,30 @@ check_feeds() {
     return 1
 }
 
+# Add this function at the beginning of your script
+install_go() {
+    if ! command -v go &> /dev/null; then
+        echo "Installing Go..."
+        # Download and install the latest stable Go
+        wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+        export PATH=$PATH:/usr/local/go/bin
+        rm go1.23.4.linux-amd64.tar.gz
+    fi
+    
+    # Verify Go installation
+    if ! command -v go &> /dev/null; then
+        echo "Failed to install Go. Please install manually."
+        exit 1
+    fi
+    
+    echo "Go version: $(go version)"
+}
+
+# Add this line after install_ncurses_libraries
+install_go
+
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <model> <package_name>"
@@ -124,6 +148,7 @@ if ! check_feeds "${SDK_PATH}"; then
     echo "Updating feeds..."
     ./scripts/feeds update -a
     ./scripts/feeds install -a
+    ./scripts/feeds install golang
 else
     echo "Using existing feeds..."
 fi
