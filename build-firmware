@@ -99,10 +99,10 @@ if [ ! -d "${SDKDIR}" ] ; then
 fi
 
 # Clean up existing SDK if it exists
-if [ -d "${SDK_PATH}" ]; then
-    echo "Removing existing SDK directory..."
-    rm -rf "${SDK_PATH}"
-fi
+# if [ -d "${SDK_PATH}" ]; then
+#     echo "Removing existing SDK directory..."
+#    rm -rf "${SDK_PATH}"
+# fi
 
 # Download and extract SDK
 if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
