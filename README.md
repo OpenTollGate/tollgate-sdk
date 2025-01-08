@@ -2,7 +2,7 @@
 
 ### Building:
 
-* Clone `https://github.com/chGoodchild/openwrt_helloworld.git` and
+* Clone `https://github.com/chGoodchild/helloworld.git` and
 `https://github.com/OpenTollGate/tollgate-sdk.git` into the same
 directory.
 

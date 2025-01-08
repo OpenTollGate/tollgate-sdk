@@ -128,8 +128,10 @@ else
     echo "Using existing feeds..."
 fi
 
-# Copy the custom package into the SDK
-cp -r ~/TollGate/openwrt_helloworld/"${PACKAGE_NAME}" package/
+# Copy the custom package into the SDK, excluding .git directory
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* package/"${PACKAGE_NAME}"/ 2>/dev/null || :
+mkdir -p package/"${PACKAGE_NAME}"
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/.[!.]* package/"${PACKAGE_NAME}"/ 2>/dev/null || :
 
 # Configure the SDK to include the package
 make defconfig
@@ -138,8 +140,11 @@ make defconfig
 make package/"${PACKAGE_NAME}"/compile V=s
 
 # Find the built package and print its absolute path
-BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages" -name "${PACKAGE_NAME}_*.ipk")
-ABSOLUTE_PATH=$(realpath "${BUILT_PACKAGE_PATH}")
-
-echo "Package built successfully!"
-echo "IPK file location: ${ABSOLUTE_PATH}"
+BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin" -name "${PACKAGE_NAME}_*.ipk")
+if [ -n "${BUILT_PACKAGE_PATH}" ]; then
+    echo "Package built successfully!"
+    echo "IPK file location: ${BUILT_PACKAGE_PATH}"
+else
+    echo "Error: Could not find built package"
+    exit 1
+fi
