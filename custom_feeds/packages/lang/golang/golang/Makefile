@@ -118,14 +118,14 @@ RSTRIP:=:
 STRIP:=:
 
 ifeq ($(GO_TARGET_SPECTRE_SUPPORTED),1)
-  PKG_CONFIG_DEPENDS+=CONFIG_GOLANG_SPECTRE
+	PKG_CONFIG_DEPENDS+=CONFIG_GOLANG_SPECTRE
 endif
 
 define Package/golang/Default
 $(call GoPackage/GoSubMenu)
-  TITLE:=Go programming language
-  URL:=https://go.dev/
-  DEPENDS:=$(GO_ARCH_DEPENDS)
+	TITLE:=Go programming language
+	URL:=https://go.dev/
+	DEPENDS:=$(GO_ARCH_DEPENDS)
 endef
 
 define Package/golang/Default/description
@@ -145,8 +145,8 @@ endef
 # https://github.com/golang/go/issues/4635
 define Package/golang
 $(call Package/golang/Default)
-  TITLE+= (compiler)
-  DEPENDS+= +golang-src
+	TITLE+= (compiler)
+	DEPENDS+= +golang-src
 endef
 
 define Package/golang/description
@@ -162,7 +162,7 @@ endef
 
 define Package/golang-doc
 $(call Package/golang/Default)
-  TITLE+= (documentation)
+	TITLE+= (documentation)
 endef
 
 define Package/golang-doc/description
@@ -173,7 +173,7 @@ endef
 
 define Package/golang-src
 $(call Package/golang/Default)
-  TITLE+= (source files)
+	TITLE+= (source files)
 endef
 
 define Package/golang-src/description
@@ -187,6 +187,10 @@ endef
 # Bootstrap
 
 BOOTSTRAP_ROOT_DIR:=$(call qstrip,$(CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT))
+
+BOOTSTRAP_SOURCE:=go$(GO_BOOTSTRAP_VERSION).src.tar.gz
+BOOTSTRAP_SOURCE_URL:=$(GO_SOURCE_URLS)
+BOOTSTRAP_HASH:=b9bd84e128c04f45d5a55081173b77f28b9843cd086f22d6c3727b37805f2f1
 
 ifeq ($(BOOTSTRAP_ROOT_DIR),)
   BOOTSTRAP_ROOT_DIR:=$(BOOTSTRAP_BUILD_DIR)
@@ -211,9 +215,9 @@ endif
 # Bootstrap 1.20
 
 define Download/golang-bootstrap-1.20
-  FILE:=$(BOOTSTRAP_1_20_SOURCE)
-  URL:=$(BOOTSTRAP_1_20_SOURCE_URL)
-  HASH:=$(BOOTSTRAP_1_20_HASH)
+	FILE:=$(BOOTSTRAP_1_20_SOURCE)
+	URL:=$(BOOTSTRAP_1_20_SOURCE_URL)
+	HASH:=$(BOOTSTRAP_1_20_HASH)
 endef
 $(eval $(call Download,golang-bootstrap-1.20))
 
@@ -228,7 +232,7 @@ $(eval $(call GoCompiler/AddProfile,Bootstrap-1.20,$(BOOTSTRAP_1_20_BUILD_DIR),,
 # Host
 
 ifeq ($(GO_HOST_PIE_SUPPORTED),1)
-  HOST_GO_ENABLE_PIE:=1
+	HOST_GO_ENABLE_PIE:=1
 endif
 
 # when using GO_LDFLAGS to set buildmode=pie, the PIE install suffix

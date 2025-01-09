@@ -146,17 +146,21 @@ setup_python_environment "${SDK_PATH}"
 cp -r ~/TollGate/toll_gate_sdk/custom_feeds ${SDK_PATH}/.
 cp -r ~/TollGate/toll_gate_sdk/feeds.conf ${SDK_PATH}/.
 
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/custom_feeds/packages/"${PACKAGE_NAME}"/ 2>/dev/null || :
+mkdir -p /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/custom_feeds/packages/"${PACKAGE_NAME}"
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/.[!.]* /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/custom_feeds/packages/"${PACKAGE_NAME}"/ 2>/dev/null || :
+
 # Check and update feeds only if necessary
-if ! check_feeds "${SDK_PATH}"; then
+#if ! check_feeds "${SDK_PATH}"; then
     echo "Updating feeds..."
     ./scripts/feeds update -a
     ./scripts/feeds install -a
     rm -rf /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/feeds/packages/lang/golang
     cp -r /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/custom_feeds/packages/lang/golang /tmp/openwrt-sdk/openwrt-sdk-23.05.3-ath79-generic_gcc-12.3.0_musl.Linux-x86_64/feeds/packages/lang/.
     ./scripts/feeds install golang
-else
-    echo "Using existing feeds..."
-fi
+#else
+#    echo "Using existing feeds..."
+#fi
 
 # Copy the custom package into the SDK, excluding .git directory
 cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* package/"${PACKAGE_NAME}"/ 2>/dev/null || :
