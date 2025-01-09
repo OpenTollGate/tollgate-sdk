@@ -68,7 +68,7 @@ install_go() {
 }
 
 # Add this line after install_ncurses_libraries
-install_go
+# install_go
 
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
