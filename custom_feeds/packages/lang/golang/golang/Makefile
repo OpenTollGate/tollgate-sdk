@@ -347,7 +347,7 @@ PKG_GO_LDFLAGS= \
 	-extldflags '$(patsubst -z%,-Wl$(comma)-z$(comma)%,$(TARGET_LDFLAGS))' \
 	$(if $(CONFIG_NO_STRIP)$(CONFIG_DEBUG),,-s -w)
 
-PKG_GO_INSTALL_ARGS= \
+PKG_GO_INSTALL_ARGS:= \
 	-buildvcs=false \
 	-trimpath \
 	-ldflags "all=$(PKG_GO_LDFLAGS)" \
