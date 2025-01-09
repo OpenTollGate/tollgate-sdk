@@ -24,7 +24,7 @@ update_golang_feed() {
     cp -r "${sdk_path}/feeds/packages/lang/golang/"* "$custom_feed_path/"
     
     # Update Makefile with new Go version
-    sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=1.23.4/' "${custom_feed_path}/Makefile"
+    sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=1.23.4/' "${custom_feed_path}/golang/Makefile"
     
     # Update hash (you'll need to get the correct hash for Go 1.23.4)
     sed -i 's/PKG_HASH:=.*/PKG_HASH:=a98c851f8d5ac151ed5e2f6e59be146cd3ca570ddec5b2e7336d5d95c7f7751d/' "${custom_feed_path}/Makefile"
