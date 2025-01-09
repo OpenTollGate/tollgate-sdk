@@ -119,11 +119,6 @@ cd "${SDK_PATH}"
 # Setup python environment with correct SDK path
 setup_python_environment "${SDK_PATH}"
 
-# Copy the custom package into the SDK, excluding .git directory
-cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
-mkdir -p package/"${PACKAGE_NAME}"
-cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/.[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
-
 # Check and update feeds only if necessary
 if ! check_feeds "${SDK_PATH}"; then
     echo "Updating feeds..."
@@ -132,6 +127,11 @@ if ! check_feeds "${SDK_PATH}"; then
 else
     echo "Using existing feeds..."
 fi
+
+# Copy the custom package into the SDK, excluding .git directory
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
+mkdir -p "${SDK_PATH}"/package/"${PACKAGE_NAME}"
+cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/.[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
 
 # Configure the SDK to include the package
 make defconfig
