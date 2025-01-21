@@ -6,7 +6,7 @@
 `https://github.com/OpenTollGate/tollgate-sdk.git` into the same
 directory.
 
-* Navigate to `tollgate-sdk` and run `./build-firmware gl-ar300m helloworld`
+* Navigate to `tollgate-sdk` and run `./build-firmware gl-ar300m helloworld` or `./build-firmware gl-ar300m tollgate-module-relay-go`.
 
 Expected output:
 ```
