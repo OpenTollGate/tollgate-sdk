@@ -46,6 +46,30 @@ check_feeds() {
     return 1
 }
 
+# Add this function at the beginning of your script
+install_go() {
+    if ! command -v go &> /dev/null; then
+        echo "Installing Go..."
+        # Download and install the latest stable Go
+        wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+        export PATH=$PATH:/usr/local/go/bin
+        rm go1.23.4.linux-amd64.tar.gz
+    fi
+    
+    # Verify Go installation
+    if ! command -v go &> /dev/null; then
+        echo "Failed to install Go. Please install manually."
+        exit 1
+    fi
+    
+    echo "Go version: $(go version)"
+}
+
+# Add this line after install_ncurses_libraries
+# install_go
+
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <model> <package_name>"
@@ -119,32 +143,59 @@ cd "${SDK_PATH}"
 # Setup python environment with correct SDK path
 setup_python_environment "${SDK_PATH}"
 
-# Check and update feeds only if necessary
-if ! check_feeds "${SDK_PATH}"; then
-    echo "Updating feeds..."
-    ./scripts/feeds update -a
-    ./scripts/feeds install -a
-else
-    echo "Using existing feeds..."
+# Create necessary directories
+mkdir -p "${SDK_PATH}/package/${PACKAGE_NAME}"
+mkdir -p "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"
+
+# Copy custom feeds and feeds configuration
+cp -r ~/TollGate/toll_gate_sdk/custom_feeds "${SDK_PATH}"/.
+cp -r ~/TollGate/toll_gate_sdk/feeds.conf "${SDK_PATH}"/.
+
+# Clear previous package files if they exist
+rm -rf "${SDK_PATH}/package/${PACKAGE_NAME}"/*
+rm -rf "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"/*
+
+# Copy package files to both locations
+echo "Copying ${PACKAGE_NAME} to package directory..."
+cp -r ~/TollGate/tollgate-module-relay-go/{Makefile,src} "${SDK_PATH}/package/${PACKAGE_NAME}/"
+
+echo "Copying ${PACKAGE_NAME} to custom feeds..."
+cp -r ~/TollGate/tollgate-module-relay-go/{Makefile,src} "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}/"
+
+# Verify the package files were copied correctly
+echo "Verifying package files..."
+if [ ! -f "${SDK_PATH}/package/${PACKAGE_NAME}/Makefile" ]; then
+    echo "Error: Package Makefile not found in ${SDK_PATH}/package/${PACKAGE_NAME}/"
+    exit 1
 fi
 
-# Copy the custom package into the SDK, excluding .git directory
-cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
-mkdir -p "${SDK_PATH}"/package/"${PACKAGE_NAME}"
-cp -r --no-preserve=ownership ~/TollGate/"${PACKAGE_NAME}"/.[!.]* "${SDK_PATH}"/package/"${PACKAGE_NAME}"/ 2>/dev/null || :
+# Update feeds
+echo "Updating feeds..."
+./scripts/feeds update -a
+./scripts/feeds install -a
 
-# Configure the SDK to include the package
+# Handle golang specifically
+echo "Setting up golang..."
+rm -rf "${SDK_PATH}/feeds/packages/lang/golang"
+cp -r "${SDK_PATH}/custom_feeds/packages/lang/golang" "${SDK_PATH}/feeds/packages/lang/."
+./scripts/feeds install golang
+
+# Configure and build
+echo "Configuring SDK..."
 make defconfig
 
-# Build the package
+echo "Building package ${PACKAGE_NAME}..."
 make package/"${PACKAGE_NAME}"/compile V=s
 
 # Find the built package and print its absolute path
-BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin" -name "${PACKAGE_NAME}_*.ipk")
+BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages/aarch64_cortex-a53/base" -name "${PACKAGE_NAME}_*.ipk")
 if [ -n "${BUILT_PACKAGE_PATH}" ]; then
     echo "Package built successfully!"
     echo "IPK file location: ${BUILT_PACKAGE_PATH}"
 else
     echo "Error: Could not find built package"
+    # Try to find where the package might be
+    echo "Searching for package in all directories..."
+    find "${SDK_PATH}/bin" -name "*.ipk" -exec ls -l {} \;
     exit 1
 fi
