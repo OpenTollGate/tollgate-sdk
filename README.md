@@ -2,11 +2,13 @@
 
 ### Building:
 
-* Clone `https://github.com/chGoodchild/helloworld.git` and
-`https://github.com/OpenTollGate/tollgate-sdk.git` into the same
-directory.
+Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
 
-* Navigate to `tollgate-sdk` and run `./build-firmware gl-ar300m helloworld` or `./build-firmware gl-ar300m tollgate-module-relay-go`.
+```
+./build-firmware gl-ar300m tollgate-module-relay-go
+./build-firmware gl-mt3000 tollgate-module-relay-go
+
+```
 
 Expected output:
 ```
