@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Check and install libncurses5-dev and libncursesw5-dev libraries
 install_ncurses_libraries() {
     if ! dpkg -s libncurses5-dev libncursesw5-dev >/dev/null 2>&1; then
@@ -10,6 +12,44 @@ install_ncurses_libraries() {
     else
         echo "libncurses5-dev and libncursesw5-dev are already installed."
     fi
+}
+
+install_go() {
+    # First check if go is in /usr/local/go/bin
+    if [ -x "/usr/local/go/bin/go" ]; then
+        # Add to PATH if not already there
+        if [[ ":$PATH:" != *":/usr/local/go/bin:"* ]]; then
+            export PATH=$PATH:/usr/local/go/bin
+            # Add to ~/.bashrc if not already there
+            if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
+                echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+            fi
+        fi
+        echo "Go is already installed."
+        echo "Go version: $(/usr/local/go/bin/go version)"
+        return 0
+    fi
+
+    # If go is not installed, proceed with installation
+    echo "Installing Go..."
+    sudo apt install -y pigz   # For multi-core unpack
+    wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -I pigz -C /usr/local -xf go1.23.4.linux-amd64.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    # Add to ~/.bashrc if not already there
+    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    fi
+    rm go1.23.4.linux-amd64.tar.gz
+    
+    # Verify Go installation
+    if ! /usr/local/go/bin/go version &> /dev/null; then
+        echo "Failed to install Go. Please install manually."
+        exit 1
+    fi
+    
+    echo "Go version: $(/usr/local/go/bin/go version)"
 }
 
 # Add this function to manage Python dependencies
@@ -45,30 +85,6 @@ check_feeds() {
     fi
     return 1
 }
-
-# Add this function at the beginning of your script
-install_go() {
-    if ! command -v go &> /dev/null; then
-        echo "Installing Go..."
-        # Download and install the latest stable Go
-        wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
-        sudo rm -rf /usr/local/go
-        sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
-        export PATH=$PATH:/usr/local/go/bin
-        rm go1.23.4.linux-amd64.tar.gz
-    fi
-    
-    # Verify Go installation
-    if ! command -v go &> /dev/null; then
-        echo "Failed to install Go. Please install manually."
-        exit 1
-    fi
-    
-    echo "Go version: $(go version)"
-}
-
-# Add this line after install_ncurses_libraries
-# install_go
 
 # Check if the required arguments are provided
 if [ $# -ne 2 ]; then
@@ -114,8 +130,9 @@ SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Lin
 DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
 
-# Main script logic
+# Install dependencies
 install_ncurses_libraries
+install_go
 
 # Prepare SDK directory
 if [ ! -d "${SDKDIR}" ] ; then
@@ -135,7 +152,7 @@ if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
 fi
 
 echo "Extracting SDK..."
-tar xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 
 # Change to SDK directory
 cd "${SDK_PATH}"
@@ -144,51 +161,42 @@ cd "${SDK_PATH}"
 setup_python_environment "${SDK_PATH}"
 
 # Create necessary directories
-mkdir -p "${SDK_PATH}/package/${PACKAGE_NAME}"
-mkdir -p "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"
+# mkdir -p "${SDK_PATH}/package/${PACKAGE_NAME}"
+# mkdir -p "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"
 
-# Copy custom feeds and feeds configuration
-cp -r ~/TollGate/toll_gate_sdk/custom_feeds "${SDK_PATH}"/.
-cp -r ~/TollGate/toll_gate_sdk/feeds.conf "${SDK_PATH}"/.
+echo "Script dir: $SCRIPT_DIR"
+cp "${SCRIPT_DIR}"/feeds.conf "${SDK_PATH}"/feeds.conf
 
-# Clear previous package files if they exist
-rm -rf "${SDK_PATH}/package/${PACKAGE_NAME}"/*
-rm -rf "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"/*
-
-# Copy package files to both locations
-echo "Copying ${PACKAGE_NAME} to package directory..."
-cp -r ~/TollGate/tollgate-module-relay-go/{Makefile,src} "${SDK_PATH}/package/${PACKAGE_NAME}/"
-
-echo "Copying ${PACKAGE_NAME} to custom feeds..."
-cp -r ~/TollGate/tollgate-module-relay-go/{Makefile,src} "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}/"
+# Update feeds
+echo "Updating feeds..."
+"${SDK_PATH}"/./scripts/feeds update -a
+"${SDK_PATH}"/./scripts/feeds install -a
 
 # Verify the package files were copied correctly
 echo "Verifying package files..."
-if [ ! -f "${SDK_PATH}/package/${PACKAGE_NAME}/Makefile" ]; then
+if [ ! -f "${SDK_PATH}/package/feeds/custom/${PACKAGE_NAME}/Makefile" ]; then
     echo "Error: Package Makefile not found in ${SDK_PATH}/package/${PACKAGE_NAME}/"
     exit 1
 fi
 
-# Update feeds
-echo "Updating feeds..."
-./scripts/feeds update -a
-./scripts/feeds install -a
-
 # Handle golang specifically
-echo "Setting up golang..."
-rm -rf "${SDK_PATH}/feeds/packages/lang/golang"
-cp -r "${SDK_PATH}/custom_feeds/packages/lang/golang" "${SDK_PATH}/feeds/packages/lang/."
-./scripts/feeds install golang
+# echo "Setting up golang..."
+# rm -rf "${SDK_PATH}/feeds/packages/lang/golang"
+# cp -r "${SDK_PATH}/custom_feeds/packages/lang/golang" "${SDK_PATH}/feeds/packages/lang/."
+# ./scripts/feeds install golang
 
 # Configure and build
 echo "Configuring SDK..."
 make defconfig
 
+echo "Building golang first..."
+make package/feeds/custom/golang/compile V=sc
+
 echo "Building package ${PACKAGE_NAME}..."
-make package/"${PACKAGE_NAME}"/compile V=s
+make package/"${PACKAGE_NAME}"/compile V=sc
 
 # Find the built package and print its absolute path
-BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages/aarch64_cortex-a53/base" -name "${PACKAGE_NAME}_*.ipk")
+BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages" -name "${PACKAGE_NAME}_*.ipk")
 if [ -n "${BUILT_PACKAGE_PATH}" ]; then
     echo "Package built successfully!"
     echo "IPK file location: ${BUILT_PACKAGE_PATH}"
