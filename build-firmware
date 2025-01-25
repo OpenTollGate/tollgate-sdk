@@ -86,14 +86,13 @@ check_feeds() {
     return 1
 }
 
-# Check if the required arguments are provided
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <model> <package_name>"
+# Check if the required argument is provided
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <model>"
     exit 1
 fi
 
 MODEL=$1
-PACKAGE_NAME=$2
 VERSION=23.05.3
 SDKDIR=/tmp/openwrt-sdk
 
@@ -139,12 +138,6 @@ if [ ! -d "${SDKDIR}" ] ; then
     mkdir -p "${SDKDIR}"
 fi
 
-# Clean up existing SDK if it exists
-# if [ -d "${SDK_PATH}" ]; then
-#     echo "Removing existing SDK directory..."
-#    rm -rf "${SDK_PATH}"
-# fi
-
 # Download and extract SDK
 if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
     echo "Downloading SDK..."
@@ -160,10 +153,6 @@ cd "${SDK_PATH}"
 # Setup python environment with correct SDK path
 setup_python_environment "${SDK_PATH}"
 
-# Create necessary directories
-# mkdir -p "${SDK_PATH}/package/${PACKAGE_NAME}"
-# mkdir -p "${SDK_PATH}/custom_feeds/packages/${PACKAGE_NAME}"
-
 echo "Script dir: $SCRIPT_DIR"
 cp "${SCRIPT_DIR}"/feeds.conf "${SDK_PATH}"/feeds.conf
 
@@ -172,19 +161,6 @@ echo "Updating feeds..."
 "${SDK_PATH}"/./scripts/feeds update -a
 "${SDK_PATH}"/./scripts/feeds install -a
 
-# Verify the package files were copied correctly
-echo "Verifying package files..."
-if [ ! -f "${SDK_PATH}/package/feeds/custom/${PACKAGE_NAME}/Makefile" ]; then
-    echo "Error: Package Makefile not found in ${SDK_PATH}/package/${PACKAGE_NAME}/"
-    exit 1
-fi
-
-# Handle golang specifically
-# echo "Setting up golang..."
-# rm -rf "${SDK_PATH}/feeds/packages/lang/golang"
-# cp -r "${SDK_PATH}/custom_feeds/packages/lang/golang" "${SDK_PATH}/feeds/packages/lang/."
-# ./scripts/feeds install golang
-
 # Configure and build
 echo "Configuring SDK..."
 make defconfig
@@ -192,18 +168,31 @@ make defconfig
 echo "Building golang first..."
 make package/feeds/custom/golang/compile V=sc
 
-echo "Building package ${PACKAGE_NAME}..."
-make package/"${PACKAGE_NAME}"/compile V=sc
+echo "Building all TollGate modules..."
+MODULES=(
+    "merchant"
+    "valve"
+    "whoami"
+    "crowsnest"
+    "tollgate-module-relay-go"
+)
 
-# Find the built package and print its absolute path
-BUILT_PACKAGE_PATH=$(find "${SDK_PATH}/bin/packages" -name "${PACKAGE_NAME}_*.ipk")
-if [ -n "${BUILT_PACKAGE_PATH}" ]; then
-    echo "Package built successfully!"
-    echo "IPK file location: ${BUILT_PACKAGE_PATH}"
-else
-    echo "Error: Could not find built package"
-    # Try to find where the package might be
-    echo "Searching for package in all directories..."
-    find "${SDK_PATH}/bin" -name "*.ipk" -exec ls -l {} \;
-    exit 1
-fi
+
+
+echo "Building all TollGate modules..."
+for module in "${MODULES[@]}"; do
+    echo "Building ${module}..."
+    make package/feeds/custom/${module}/compile V=sc
+done
+
+# Find all built packages and print their paths
+BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" -exec dirname {} \; | head -n 1)
+
+echo -e "\nUploading packages to blossom and creating nostr event..."
+# Run the aggregate info script for all packages
+python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf"
+noscl publish "$(cat note.md)"
+
+# List all built packages
+echo "Built packages:"
+find "${BUILT_PACKAGES_DIR}" -name "tollgate-module-*.ipk" -exec ls -l {} \;

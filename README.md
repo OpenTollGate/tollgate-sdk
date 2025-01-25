@@ -10,6 +10,26 @@ Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
 
 ```
 
+# Populate the `json` so that your binaries can be pushed to blossom
+```
+$ cat blossom_secrets.json 
+{
+  "servers": [
+    "https://files.v0l.io/",
+    "https://nostr.download/",
+    "https://blossom.poster.place/"
+  ],
+  "relays": [
+    "wss://orangesync.tech",
+    "wss://nostr.mom",
+    "wss://relay.stens.dev"
+  ],
+  "secret_key": "nsec[your_secret_key]",
+  "secret_key_hex": "[hex_version_of_your_secret_key]"
+}
+```
+
+
 Expected output:
 ```
 toll_gate_sdk$ ./build-firmware gl-ar300m helloworld
