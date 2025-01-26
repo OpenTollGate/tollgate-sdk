@@ -1,19 +1,25 @@
 #!/bin/bash
 
-# Check if Go is installed
-if ! command -v go &> /dev/null; then
-    echo "Error: Go is not installed. Please install Go first."
+# Require root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run with sudo"
     exit 1
 fi
 
+# Preserve the original user's GOPATH
+ORIGINAL_USER=$(logname)
+export GOPATH="/home/$ORIGINAL_USER/go"
+export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+
 # Create a directory for the project
 echo "Creating directory for Blossom..."
-mkdir -p ~/blossom
-cd ~/blossom
+mkdir -p /opt/blossom
+cd /opt/blossom
 
-# Clone the repository
-# echo "Cloning Blossom repository..."
-# git clone https://git.fiatjaf.com/blossom
+# Clone the repository if not exists
+if [ ! -d "blossom" ]; then
+    git clone https://git.fiatjaf.com/blossom .
+fi
 
 # Download Go dependencies
 echo "Downloading Go dependencies..."
@@ -23,22 +29,11 @@ go mod download
 echo "Building Blossom..."
 go build -o blossom .
 
-# Make the binary executable
+# Make the binary executable and move to system-wide location
+echo "Installing Blossom system-wide..."
 chmod +x blossom
-
-# Add to PATH (optional)
-echo "Adding Blossom to PATH..."
-mkdir -p ~/bin
-cp blossom ~/bin/
-
-# Update PATH in shell configuration if needed
-if [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
-    echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
-    echo "Please restart your shell or run 'source ~/.bashrc' to update PATH"
-fi
+cp blossom /usr/local/bin/
 
 # Print success message
 echo "Blossom has been successfully installed!"
-echo "You can now use 'blossom' from anywhere in your terminal"
-echo "Example usage:"
-echo "blossom upload -server <server_url> -file <file_path> -privkey <private_key>"
+echo "The blossom binary is now available system-wide in /usr/local/bin"
