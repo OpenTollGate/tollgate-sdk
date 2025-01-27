@@ -101,7 +101,7 @@ def create_nostr_event(package_dir, feeds_conf):
     
     # Create the event string
     event = f"```\n{json_result}\n```\n\n"
-    event += f"#openwrt #{full_arch} #{target_platform}"
+    event += f"#TollGatePackages #{full_arch} #{target_platform}"
     
     return event
 
