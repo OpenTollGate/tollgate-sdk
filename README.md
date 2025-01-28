@@ -25,7 +25,9 @@ $ cat blossom_secrets.json
     "wss://relay.stens.dev"
   ],
   "secret_key": "nsec[your_secret_key]",
-  "secret_key_hex": "[hex_version_of_your_secret_key]"
+  "secret_key_hex": "[hex_version_of_your_secret_key]",
+  "public_key": "npub[your_public_key]",
+  "public_key_hex": "[hex_version_of_your_public_key]"
 }
 ```
 
