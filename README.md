@@ -29,6 +29,13 @@ $ cat blossom_secrets.json
 }
 ```
 
+# Install blossom and noscl cli
+```
+$ ./blossom-installer.sh 
+$ ./noscl-installer.sh 
+
+```
+
 
 Expected output:
 ```
