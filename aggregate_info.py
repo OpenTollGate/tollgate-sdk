@@ -37,7 +37,7 @@ def run_blossom_upload(file_path):
         original_hash: successful_servers
     }
 
-def aggregate(package_dir, feeds_conf):
+def aggregate(package_dir, feeds_conf, sdk_path):
     # Initialize result dictionary
     result = {
         "binaries": {},
@@ -105,9 +105,9 @@ def aggregate(package_dir, feeds_conf):
 
     return json.dumps(result, indent=2)
 
-def create_nostr_event(package_dir, feeds_conf):
+def create_nostr_event(package_dir, feeds_conf, sdk_path):
     # Get the JSON result
-    json_result = aggregate(package_dir, feeds_conf)
+    json_result = aggregate(package_dir, feeds_conf, sdk_path)
     
     # Parse the JSON to extract target info for hashtags
     result_dict = json.loads(json_result)
@@ -153,7 +153,7 @@ def main():
         sys.exit(1)
 
     # Print final aggregated JSON
-    nostr_event=create_nostr_event(package_dir, feeds_conf)
+    nostr_event=create_nostr_event(package_dir, feeds_conf, sdk_path)
     
     # Write to note.md
     note_path = Path('note.md')
