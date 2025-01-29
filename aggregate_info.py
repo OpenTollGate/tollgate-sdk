@@ -152,24 +152,6 @@ def main():
         print(json.dumps({"error": f"SDK directory not found: {sdk_path}"}, indent=2))
         sys.exit(1)
 
-    if len(sys.argv) != 3:
-        error = {
-            "error": f"Usage: {sys.argv[0]} <path_to_packages_directory> <path_to_feeds.conf>"
-        }
-        print(json.dumps(error, indent=2))
-        sys.exit(1)
-
-    package_dir = sys.argv[1]
-    feeds_conf = sys.argv[2]
-
-    if not os.path.isdir(package_dir):
-        print(json.dumps({"error": f"Directory not found: {package_dir}"}, indent=2))
-        sys.exit(1)
-
-    if not os.path.isfile(feeds_conf):
-        print(json.dumps({"error": f"File not found: {feeds_conf}"}, indent=2))
-        sys.exit(1)
-
     # Print final aggregated JSON
     nostr_event=create_nostr_event(package_dir, feeds_conf)
     

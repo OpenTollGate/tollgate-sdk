@@ -68,7 +68,6 @@ SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Lin
 DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
 
-
 # Prepare SDK directory
 if [ ! -d "${SDKDIR}" ] ; then
     mkdir -p "${SDKDIR}"
@@ -110,8 +109,6 @@ MODULES=(
     "tollgate-module-relay-go"
 )
 
-
-
 echo "Building all TollGate modules..."
 for module in "${MODULES[@]}"; do
     echo "Building ${module}..."
@@ -123,7 +120,7 @@ BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ip
 
 echo -e "\nUploading packages to blossom and creating nostr event..."
 # Run the aggregate info script for all packages
-python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}"
+python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}" > /tmp/aggregate_output.txt
 noscl publish "$(cat note.md)"
 
 # List all built packages
