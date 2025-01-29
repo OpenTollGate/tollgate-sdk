@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Install dependencies
-# ./install-deps.sh
+./install-deps.sh
 # Add this function to check feeds status
 check_feeds() {
     local sdk_path=$1
@@ -118,7 +118,8 @@ done
 # Find all built packages and print their paths
 BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" -exec dirname {} \; | head -n 1)
 
-echo -e "\nUploading packages to blossom and creating nostr event..."
+echo -e "
+Uploading packages to blossom and creating nostr event..."
 # Run the aggregate info script for all packages
 python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}" > /tmp/aggregate_output.txt
 noscl publish "$(cat note.md)"

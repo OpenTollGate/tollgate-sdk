@@ -35,7 +35,7 @@ if ! [ -x "$(command -v pip3)" ]; then
     apt-get install -y python3-pip
 fi
 
-pip3 install -r requirements.txt
+pip3 install --break-system-packages -r requirements.txt
 
 # Install opkg-make-index
 if [ ! -f "/tmp/openwrt-sdk/staging_dir/host/bin/opkg-make-index" ]; then
