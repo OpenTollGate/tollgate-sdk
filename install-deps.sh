@@ -30,12 +30,16 @@ else
     echo "Go version: $(/usr/local/go/bin/go version)"
 fi
 
-# Install python dependencies
-if ! [ -x "$(command -v pip3)" ]; then
-    apt-get install -y python3-pip
+# Create and activate virtual environment
+echo "Setting up virtual environment..."
+if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
 fi
+source .venv/bin/activate
 
-pip3 install --break-system-packages -r requirements.txt
+# Install python dependencies
+echo "Installing Python dependencies..."
+pip3 install -r requirements.txt
 
 # Install opkg-make-index
 if [ ! -f "/tmp/openwrt-sdk/staging_dir/host/bin/opkg-make-index" ]; then

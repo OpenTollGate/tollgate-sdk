@@ -18,7 +18,7 @@ $ cat blossom_secrets.json
   "relays": [
     "wss://orangesync.tech",
     "wss://nostr.mom",
-    "wss://relay.stens.dev"
+    "wss://nostr.chaima.info"
   ],
   "secret_key": "nsec[your_secret_key]",
   "secret_key_hex": "[hex_version_of_your_secret_key]",
