@@ -78,6 +78,10 @@ if [ -f "blossom_secrets.json" ]; then
     done < <(jq -r '.relays[]' blossom_secrets.json)
 fi
 
+sudo apt-get install -y gawk coreutils curl tar qemu-system-arm qemu-system-mips qemu-img socat
+pip3 install requests nostr
+
+
 # Verify setup
 echo "Setup complete. Verifying configuration..."
 echo "Configured relays:"
