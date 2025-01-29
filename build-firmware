@@ -129,7 +129,7 @@ BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ip
 
 echo -e "\nUploading packages to blossom and creating nostr event..."
 # Run the aggregate info script for all packages
-python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf"
+python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}"
 noscl publish "$(cat note.md)"
 
 # List all built packages
