@@ -3,8 +3,6 @@ set -e
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Install dependencies
-./install-deps.sh
 # Add this function to check feeds status
 check_feeds() {
     local sdk_path=$1
@@ -81,6 +79,9 @@ fi
 
 echo "Extracting SDK..."
 tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+
+# Install dependencies
+./install-deps.sh
 
 # Change to SDK directory
 cd "${SDK_PATH}"
