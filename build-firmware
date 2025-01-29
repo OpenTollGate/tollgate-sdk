@@ -3,6 +3,45 @@ set -e
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+install_go() {
+    # First check if go is in /usr/local/go/bin
+    if [ -x "/usr/local/go/bin/go" ]; then
+        # Add to PATH if not already there
+        if [[ ":$PATH:" != *":/usr/local/go/bin:"* ]]; then
+            export PATH=$PATH:/usr/local/go/bin
+            # Add to ~/.bashrc if not already there
+            if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
+                echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+            fi
+        fi
+        echo "Go is already installed."
+        echo "Go version: $(/usr/local/go/bin/go version)"
+        return 0
+    fi
+
+    # If go is not installed, proceed with installation
+    echo "Installing Go..."
+    sudo apt install -y pigz   # For multi-core unpack
+    wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -I pigz -C /usr/local -xf go1.23.4.linux-amd64.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    # Add to ~/.bashrc if not already there
+    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    fi
+    rm go1.23.4.linux-amd64.tar.gz
+    
+    # Verify Go installation
+    if ! /usr/local/go/bin/go version &> /dev/null; then
+        echo "Failed to install Go. Please install manually."
+        exit 1
+    fi
+    
+    echo "Go version: $(/usr/local/go/bin/go version)"
+}
+
+
 # Add this function to check feeds status
 check_feeds() {
     local sdk_path=$1
@@ -71,6 +110,10 @@ if [ ! -d "${SDKDIR}" ] ; then
     mkdir -p "${SDKDIR}"
 fi
 
+# Install dependencies
+./install-deps.sh
+install_go()
+
 # Download and extract SDK
 if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
     echo "Downloading SDK..."
@@ -80,8 +123,6 @@ fi
 echo "Extracting SDK..."
 tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 
-# Install dependencies
-./install-deps.sh
 
 # Change to SDK directory
 cd "${SDK_PATH}"

@@ -5,31 +5,6 @@ set -e
 apt-get update
 apt-get install -y libncurses5-dev libncursesw5-dev curl tar pigz
 
-# Install Go
-if ! [ -x "/usr/local/go/bin/go" ]; then
-    echo "Installing Go..."
-    wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
-    sudo rm -rf /usr/local/go
-    sudo tar -I pigz -C /usr/local -xf go1.23.4.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    # Add to ~/.bashrc if not already there
-    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    fi
-    rm go1.23.4.linux-amd64.tar.gz
-
-    # Verify Go installation
-    if ! /usr/local/go/bin/go version &> /dev/null; then
-        echo "Failed to install Go. Please install manually."
-        exit 1
-    fi
-
-    echo "Go version: $(/usr/local/go/bin/go version)"
-else
-    echo "Go is already installed."
-    echo "Go version: $(/usr/local/go/bin/go version)"
-fi
-
 # Create and activate virtual environment
 echo "Setting up virtual environment..."
 if [ ! -d ".venv" ]; then
