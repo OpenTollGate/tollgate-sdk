@@ -74,8 +74,24 @@ def aggregate(package_dir, feeds_conf, sdk_path):
             filename = os.path.basename(file_path)
             module_name = filename.split("_")[0]
             
+            # Map module name to directory name
+            module_dir_map = {
+                "golang": "lang",
+                "golang-src": "lang",
+                "golang-doc": "lang",
+                "tollgate-module-valve-go": "valve",
+                "tollgate-module-merchant-go": "merchant",
+                "tollgate-module-relay-go": "tollgate-module-relay-go",
+                "tollgate-module-whoami-go": "whoami",
+                "tollgate-module-crowsnest-go": "crowsnest",
+            }
+            
+            module_dir = module_dir_map.get(module_name, module_name)
+
             # Construct the Makefile path
-            makefile_path = os.path.join(sdk_path, "package", "feeds", "custom", module_name, "Makefile")
+            makefile_path = os.path.join(sdk_path, "feeds", "custom", module_dir, "Makefile")
+            print(f"makefile_path: {makefile_path}")
+
             
             branch_name = "unknown"
             commit_hash = "unknown"
@@ -85,9 +101,9 @@ def aggregate(package_dir, feeds_conf, sdk_path):
                     for line in f:
                         if line.startswith("PKG_SOURCE_VERSION:="):
                             branch_name = line.split(":=")[1].strip()
-                        elif line.startswith("PKG_SOURCE_COMMIT:="):
+                            print(f"branch_name after reading: {branch_name}")
+                        if line.startswith("PKG_SOURCE_COMMIT:="):
                             commit_hash = line.split(":=")[1].strip()
-                            break
 
             blossom_result = run_blossom_upload(file_path)
             
