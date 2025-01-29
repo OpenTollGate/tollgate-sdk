@@ -2,6 +2,20 @@
 set -e
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source .venv/bin/activate
+
+# Install dependencies
+./install-deps.sh
+
+#install_ncurses_libraries() {
+#    if ! dpkg -s libncurses5-dev libncursesw5-dev >/dev/null 2>&1; then
+#        echo "Installing libncurses5-dev and libncursesw5-dev packages..."
+#        sudo apt-get update
+#        sudo apt-get install -y libncurses5-dev libncursesw5-dev
+#    else
+#        echo "libncurses5-dev and libncursesw5-dev are already installed."
+#    fi
+#}
 
 install_go() {
     # First check if go is in /usr/local/go/bin
@@ -110,19 +124,17 @@ if [ ! -d "${SDKDIR}" ] ; then
     mkdir -p "${SDKDIR}"
 fi
 
-# Install dependencies
-./install-deps.sh
-install_go()
-
 # Download and extract SDK
 if [ ! -f "${SDKDIR}/${SDK_ARCHIVE}" ]; then
     echo "Downloading SDK..."
     (cd "${SDKDIR}" && curl -O "${DOWNLOAD_URL}")
 fi
 
+
 echo "Extracting SDK..."
 tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 
+install_go()
 
 # Change to SDK directory
 cd "${SDK_PATH}"
@@ -163,7 +175,7 @@ BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ip
 echo -e "
 Uploading packages to blossom and creating nostr event..."
 # Run the aggregate info script for all packages
-python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}" > /tmp/aggregate_output.txt
+.venv/bin/python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf" "${SDK_PATH}" > /tmp/aggregate_output.txt
 noscl publish "$(cat note.md)"
 
 # List all built packages
