@@ -75,16 +75,18 @@ def aggregate(package_dir, feeds_conf, sdk_path):
             module_name = filename.split("_")[0]
             
             # Construct the Makefile path
-        # Construct the Makefile path
-            makefile_path = os.path.join(sdk_path, "feeds", "custom", module_name, "Makefile")
+            makefile_path = os.path.join(sdk_path, "package", "feeds", "custom", module_name, "Makefile")
             
             branch_name = "unknown"
+            commit_hash = "unknown"
             
             if os.path.exists(makefile_path):
                 with open(makefile_path, 'r') as f:
                     for line in f:
                         if line.startswith("PKG_SOURCE_VERSION:="):
                             branch_name = line.split(":=")[1].strip()
+                        elif line.startswith("PKG_SOURCE_COMMIT:="):
+                            commit_hash = line.split(":=")[1].strip()
                             break
 
             blossom_result = run_blossom_upload(file_path)
@@ -99,7 +101,8 @@ def aggregate(package_dir, feeds_conf, sdk_path):
             result["binaries"][filename] = {
                 "file_hash": list(blossom_result.keys())[0],
                 "servers": list(blossom_result.values())[0],
-                "branch": branch_name
+                "branch": branch_name,
+                "commit": commit_hash
             }
             print(f"Successfully uploaded {filename}")
 
