@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Install dependencies
-./install-deps.sh
+# ./install-deps.sh
 # Add this function to check feeds status
 check_feeds() {
     local sdk_path=$1
@@ -68,9 +68,6 @@ SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Lin
 DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
 SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
 
-# Install dependencies
-install_ncurses_libraries
-install_go
 
 # Prepare SDK directory
 if [ ! -d "${SDKDIR}" ] ; then
@@ -88,9 +85,6 @@ tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 
 # Change to SDK directory
 cd "${SDK_PATH}"
-
-# Setup python environment with correct SDK path
-setup_python_environment "${SDK_PATH}"
 
 echo "Script dir: $SCRIPT_DIR"
 cp "${SCRIPT_DIR}"/feeds.conf "${SDK_PATH}"/feeds.conf
