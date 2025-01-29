@@ -1,3 +1,17 @@
+# Setting up the project
+
+1. Clone the repository.
+
+2. Create a virtual environment:
+   python3 -m venv venv
+
+3. Activate the virtual environment:
+   source venv/bin/activate
+
+4. Install dependencies:
+    pip install -r requirements.txt
+
+ Note: ensure the file `requirements.txt` exist
 
 ## Struggling to get started?
 
@@ -5,14 +19,10 @@
 * This [write-up](https://njump.me/nevent1qqs2yfg6yuzkfd8ymry2hqt9a8vzf86zsuwh4phkmumdfk5kpke95jsppemhxue69uhkummn9ekx7mp0qgst8c37ku3hkdj6e2vun550qu9rzntp4qm700g0ewc0qw2dmnakyxqrqsqqqqqpxv8pu3) provides details on building with the SDK
 * And this [write-up](https://njump.me/nevent1qqsge5zzeya9e0v5pftg2durq5htc6cpd93d3qs7tezcfadsme0ckcqppemhxue69uhkummn9ekx7mp0qgst8c37ku3hkdj6e2vun550qu9rzntp4qm700g0ewc0qw2dmnakyxqrqsqqqqqppkccyz) provides details on generating images with the image builder
 
-
-### Building:
-
-Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
-
+# Install blossom and noscl cli
 ```
-./build-firmware gl-ar300m tollgate-module-relay-go
-./build-firmware gl-mt3000 tollgate-module-relay-go
+$ ./blossom-installer.sh 
+$ ./noscl-installer.sh 
 
 ```
 
@@ -37,13 +47,16 @@ $ cat blossom_secrets.json
 }
 ```
 
-# Install blossom and noscl cli
-```
-$ ./blossom-installer.sh 
-$ ./noscl-installer.sh 
+
+### Building:
+
+Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
 
 ```
+./build-firmware gl-ar300m tollgate-module-relay-go
+./build-firmware gl-mt3000 tollgate-module-relay-go
 
+```
 
 Expected output:
 ```
