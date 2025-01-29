@@ -78,7 +78,7 @@ if [ -f "blossom_secrets.json" ]; then
     done < <(jq -r '.relays[]' blossom_secrets.json)
 fi
 
-sudo apt-get install -y gawk coreutils curl tar qemu-system-arm qemu-system-mips qemu-img socat
+sudo apt-get install -y gawk coreutils curl tar qemu-system-arm qemu-system-mips socat
 pip3 install requests nostr
 
 
