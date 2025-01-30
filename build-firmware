@@ -170,11 +170,11 @@ make package/feeds/custom/golang/compile V=sc
 
 echo "Building all TollGate modules..."
 MODULES=(
+    "tollgate-module-relay-go"
     "merchant"
     "valve"
     "whoami"
     "crowsnest"
-    "tollgate-module-relay-go"
 )
 
 
