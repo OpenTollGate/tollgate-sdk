@@ -9,18 +9,25 @@ fi
 
 # Install system dependencies
 apt-get update
-apt-get install -y libncurses5-dev libncursesw5-dev curl tar pigz
+apt-get install -y libncurses5-dev libncursesw5-dev curl tar pigz make
+sudo apt-get install python3-pip
+sudo apt install -y golang-1.23
+
+# sudo apt install -y python3-venv
 
 # Create and activate virtual environment
-echo "Setting up virtual environment..."
-if [ ! -d ".venv" ]; then
-    python3 -m venv .venv
-fi
-source .venv/bin/activate
+#echo "Setting up virtual environment..."
+#if [ ! -d ".venv" ]; then
+#    python3 -m venv .venv
+#fi
+
+#if [ -d ".venv" ]; then
+#  source .venv/bin/activate
+#fi
 
 # Install python dependencies
-echo "Installing Python dependencies..."
-pip3 install -r requirements.txt
+#echo "Installing Python dependencies..."
+#pip3 install -r requirements.txt
 
 # Install opkg-make-index
 if [ ! -f "/tmp/openwrt-sdk/staging_dir/host/bin/opkg-make-index" ]; then
@@ -35,7 +42,8 @@ fi
 # Install noscl
 if ! [ -x "/usr/local/bin/noscl" ]; then
     echo "Installing noscl..."
-    GOBIN=/usr/local/bin go install github.com/fiatjaf/noscl@latest
+    #GOBIN=/usr/local/bin go install github.com/fiatjaf/noscl@latest
+    GOBIN=go install github.com/fiatjaf/noscl@latest
     # Create nostr config directory for both root and original user
     ORIGINAL_USER=$(logname)
     mkdir -p /root/.config/nostr
@@ -98,8 +106,7 @@ echo "Blossom has been successfully installed!"
 echo "The blossom binary is now available system-wide in /usr/local/bin"
 
 sudo apt-get install -y gawk coreutils curl tar qemu-system-arm qemu-system-mips socat
-pip3 install requests nostr
-
+pip install requests nostr wheel
 
 # Verify setup
 echo "Setup complete. Verifying configuration..."
