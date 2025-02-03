@@ -10,8 +10,8 @@ fi
 # Install system dependencies
 apt-get update
 apt-get install -y libncurses5-dev libncursesw5-dev curl tar pigz make
-sudo apt-get install python3-pip
-sudo apt install -y golang-1.23
+apt install python3-pip
+apt install -y golang-1.23
 
 # sudo apt install -y python3-venv
 
@@ -43,7 +43,7 @@ fi
 if ! [ -x "/usr/local/bin/noscl" ]; then
     echo "Installing noscl..."
     #GOBIN=/usr/local/bin go install github.com/fiatjaf/noscl@latest
-    GOBIN=go install github.com/fiatjaf/noscl@latest
+    GOBIN=/usr/local/bin go install github.com/fiatjaf/noscl@latest
     # Create nostr config directory for both root and original user
     ORIGINAL_USER=$(logname)
     mkdir -p /root/.config/nostr
@@ -106,7 +106,7 @@ echo "Blossom has been successfully installed!"
 echo "The blossom binary is now available system-wide in /usr/local/bin"
 
 sudo apt-get install -y gawk coreutils curl tar qemu-system-arm qemu-system-mips socat
-pip install requests nostr wheel
+pip3 install requests nostr wheel
 
 # Verify setup
 echo "Setup complete. Verifying configuration..."
