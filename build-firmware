@@ -87,12 +87,13 @@ check_feeds() {
 }
 
 # Check if the required argument is provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <model>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <model> <module>"
     exit 1
 fi
 
 MODEL=$1
+MODULE=$2
 VERSION=23.05.3
 SDKDIR=/tmp/openwrt-sdk
 
@@ -150,6 +151,47 @@ tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
 # Change to SDK directory
 cd "${SDK_PATH}"
 
+# Add this after the cd "${SDK_PATH}" line
+echo "Copying golang.mk to SDK include directory..."
+mkdir -p "${SDK_PATH}"/include
+cp "${SCRIPT_DIR}"/golang.mk "${SDK_PATH}"/include/golang.mk
+
+# Set GOOS and GOARCH based on the PLATFORM variable
+case "$PLATFORM" in
+    "ramips")
+        export GOOS="linux"
+        export GOARCH="mips"
+        if [ "$SUBTARGET" = "mt7620" ]; then
+            export GOARM=""
+            export GOMIPS="mips32"
+            export GO386=""
+        else
+            export GOARM=""
+            export GOMIPS="mips32"
+            export GO386=""
+        fi
+        ;;
+    "ath79")
+        export GOOS="linux"
+        export GOARCH="mips"
+        export GOARM=""
+        export GOMIPS="mips32"
+        export GO386=""
+        ;;
+    "mediatek")
+         export GOOS="linux"
+         export GOARCH="arm64"
+         export GOARM="arm64"
+         export GOMIPS=""
+         export GO386=""
+         ;;
+    *)
+        echo "Unsupported platform for GOOS/GOARCH setting."
+        exit 1
+        ;;
+esac
+
+
 # Setup python environment with correct SDK path
 setup_python_environment "${SDK_PATH}"
 
@@ -168,31 +210,20 @@ make defconfig
 echo "Building golang first..."
 make package/feeds/custom/golang/compile V=sc
 
-echo "Building all TollGate modules..."
-MODULES=(
-    "tollgate-module-relay-go"
-    "merchant"
-    "valve"
-    "whoami"
-    "crowsnest"
-)
-
-
-
-echo "Building all TollGate modules..."
-for module in "${MODULES[@]}"; do
-    echo "Building ${module}..."
-    make package/feeds/custom/${module}/compile V=sc
-done
+echo "Building module: $MODULE"
+make package/feeds/custom/${MODULE}/compile V=sc
 
 # Find all built packages and print their paths
 BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" -exec dirname {} \; | head -n 1)
 
-echo -e "\nUploading packages to blossom and creating nostr event..."
+# echo -e "\nUploading packages to blossom and creating nostr event..."
 # Run the aggregate info script for all packages
-python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf"
-noscl publish "$(cat note.md)"
+# python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf"
+#SECRET_KEY="$SECRET_KEY" noscl publish "$(cat note.md)"
+# /usr/local/bin/noscl key-gen
+# noscl publish "$(cat note.md)"
 
 # List all built packages
 echo "Built packages:"
 find "${BUILT_PACKAGES_DIR}" -name "tollgate-module-*.ipk" -exec ls -l {} \;
+touch SUCCESS
