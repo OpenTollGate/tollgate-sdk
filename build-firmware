@@ -214,16 +214,12 @@ echo "Building module: $MODULE"
 make package/feeds/custom/${MODULE}/compile V=sc
 
 # Find all built packages and print their paths
-BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" -exec dirname {} \; | head -n 1)
+BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" | xargs dirname | head -n 1)
 
-# echo -e "\nUploading packages to blossom and creating nostr event..."
-# Run the aggregate info script for all packages
-# python3 "${SCRIPT_DIR}/aggregate_info.py" "${BUILT_PACKAGES_DIR}" "${SCRIPT_DIR}/feeds.conf"
-#SECRET_KEY="$SECRET_KEY" noscl publish "$(cat note.md)"
-# /usr/local/bin/noscl key-gen
-# noscl publish "$(cat note.md)"
+echo -e "\nUploading packages to blossom and creating nostr event..."
 
 # List all built packages
 echo "Built packages:"
 find "${BUILT_PACKAGES_DIR}" -name "tollgate-module-*.ipk" -exec ls -l {} \;
-touch SUCCESS
+
+python3 aggregate_info.py "$BUILT_PACKAGES_DIR" "$SCRIPT_DIR/feeds.conf"

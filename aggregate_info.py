@@ -5,17 +5,21 @@ import json
 import glob
 import os
 from pathlib import Path
-
-# Import functions from other scripts
+from nostr.event import Event
+from nostr.key import PrivateKey
+from nostr.relay_manager import RelayManager
 from blossom_upload import calculate_sha256, test_server
 from get_path_details import extract_arch_info
 from feed_repo_data import concatenate_repos
+import time
+import ssl
+
+SECRETS_FILE="blossom_secrets.json"
 
 def run_blossom_upload(file_path):
     """Run blossom upload functionality directly"""
     try:
-        secrets_path = os.path.join(os.path.dirname(__file__), 'blossom_secrets.json')
-        print("secrets path: ", str(secrets_path))
+        secrets_path = os.path.join(os.path.dirname(__file__), SECRETS_FILE)
         with open(secrets_path) as f:
             secrets = json.load(f)
             secret_key = secrets['secret_key']
@@ -101,7 +105,7 @@ def create_nostr_event(package_dir, feeds_conf):
     
     # Create the event string
     event = f"```\n{json_result}\n```\n\n"
-    event += f"#openwrt #{full_arch} #{target_platform}"
+    event += f"#OpenWRT-image #{full_arch} #{target_platform}"
     
     return event
 
@@ -110,32 +114,63 @@ def write_note(data, note_path):
     with open(note_path, 'w') as f:
         f.write(data)
 
+def publish_note(data):
+    secrets_path = os.path.join(os.path.dirname(__file__), SECRETS_FILE)
+    with open(secrets_path) as f:
+        secrets = json.load(f)
+        secret_key_hex = secrets['secret_key_hex']
+        relays = secrets['relays']
+
+    private_key = PrivateKey(bytes.fromhex(secret_key_hex))
+
+    event = Event(content=data, public_key=private_key.public_key.hex())
+    private_key.sign_event(event)
+
+    relay_manager = RelayManager()
+    for relay in relays:
+        try:
+            relay_manager.add_relay(relay)
+        except Exception as e:
+            print(f"Error adding relay {relay}: {e}")
+
+    relay_manager.open_connections({"cert_reqs": ssl.CERT_NONE})
+    time.sleep(1.25)  # give the relays some time to connect
+    
+    relay_manager.publish_event(event)
+    time.sleep(1) # give time to send
+
+    relay_manager.close_connections()
+ 
 def main():
     if len(sys.argv) != 3:
         error = {
             "error": f"Usage: {sys.argv[0]} <path_to_packages_directory> <path_to_feeds.conf>"
         }
-        print(json.dumps(error, indent=2))
+        print(json.dumps(error, indent=2), file=sys.stderr)
         sys.exit(1)
 
     package_dir = sys.argv[1]
     feeds_conf = sys.argv[2]
 
     if not os.path.isdir(package_dir):
-        print(json.dumps({"error": f"Directory not found: {package_dir}"}, indent=2))
+        print(json.dumps({"error": f"Directory not found: {package_dir}"}, indent=2), file=sys.stderr)
         sys.exit(1)
 
     if not os.path.isfile(feeds_conf):
-        print(json.dumps({"error": f"File not found: {feeds_conf}"}, indent=2))
+        print(json.dumps({"error": f"File not found: {feeds_conf}"}, indent=2), file=sys.stderr)
         sys.exit(1)
 
     # Print final aggregated JSON
     nostr_event=create_nostr_event(package_dir, feeds_conf)
-    
+    json_result = aggregate(package_dir, feeds_conf)
+
     # Write to note.md
     note_path = Path('note.md')
-    write_note(nostr_event, note_path)
-    print(nostr_event)
+    
+    # write_note(nostr_event, note_path)
+    publish_note(nostr_event)
+    # print(nostr_event)
+    print(json_result)
 
 
 if __name__ == "__main__":

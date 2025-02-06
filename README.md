@@ -92,3 +92,8 @@ grep -n -E "Error|failed" -C 5 compile_log.md
 
 ```
 
+### Publishing to nostr
+```
+python3 /root/TollGate/tollgate-sdk/aggregate_info.py /tmp/openwrt-sdk/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64/bin/packages/aarch64_cortex-a53/custom/ /tmp/openwrt-sdk/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64/feeds.conf
+```
+
