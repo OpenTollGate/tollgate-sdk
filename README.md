@@ -1,22 +1,12 @@
+# Setting up the project
 
 ## Struggling to get started?
-
+Writeups already outdated..
 * This [write-up](https://njump.me/nevent1qqsrkfkdwy8q693vtrs789t7gf0vt86avkp7ufcmn5j0rhuvpr35zsqprfmhxue69uhhgmmvd33x7mm5dqh8xar9deejuer9wchsyg9nugltwgmmxedv4xwf628swz33f4s6sdl8h58uhv8s89xae7mzrqpsgqqqqqqsy3ukmv) provides a general overview of targeting OpenWRT
 * This [write-up](https://njump.me/nevent1qqs2yfg6yuzkfd8ymry2hqt9a8vzf86zsuwh4phkmumdfk5kpke95jsppemhxue69uhkummn9ekx7mp0qgst8c37ku3hkdj6e2vun550qu9rzntp4qm700g0ewc0qw2dmnakyxqrqsqqqqqpxv8pu3) provides details on building with the SDK
 * And this [write-up](https://njump.me/nevent1qqsge5zzeya9e0v5pftg2durq5htc6cpd93d3qs7tezcfadsme0ckcqppemhxue69uhkummn9ekx7mp0qgst8c37ku3hkdj6e2vun550qu9rzntp4qm700g0ewc0qw2dmnakyxqrqsqqqqqppkccyz) provides details on generating images with the image builder
 
-
-### Building:
-
-Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
-
-```
-./build-firmware gl-ar300m tollgate-module-relay-go
-./build-firmware gl-mt3000 tollgate-module-relay-go
-
-```
-
-# Populate the `json` so that your binaries can be pushed to blossom
+### Populate the `json` so that your binaries can be pushed to blossom
 ```
 $ cat blossom_secrets.json 
 {
@@ -28,7 +18,7 @@ $ cat blossom_secrets.json
   "relays": [
     "wss://orangesync.tech",
     "wss://nostr.mom",
-    "wss://relay.stens.dev"
+    "wss://nostr.chaima.info"
   ],
   "secret_key": "nsec[your_secret_key]",
   "secret_key_hex": "[hex_version_of_your_secret_key]",
@@ -37,13 +27,21 @@ $ cat blossom_secrets.json
 }
 ```
 
-# Install blossom and noscl cli
+### Install dependencies
 ```
-$ ./blossom-installer.sh 
-$ ./noscl-installer.sh 
+./blossom-installer.sh 
+./noscl-installer.sh 
+```
+
+### Building:
+
+Clone `https://github.com/OpenTollGate/tollgate-sdk.git` and run:
 
 ```
+./build-firmware gl-ar300m tollgate-module-relay-go
+./build-firmware gl-mt3000 tollgate-module-relay-go
 
+```
 
 Expected output:
 ```

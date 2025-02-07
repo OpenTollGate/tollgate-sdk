@@ -41,7 +41,7 @@ def run_blossom_upload(file_path):
         original_hash: successful_servers
     }
 
-def aggregate(package_dir, feeds_conf):
+def aggregate(package_dir, feeds_conf, sdk_path):
     # Initialize result dictionary
     result = {
         "binaries": {},
@@ -73,7 +73,43 @@ def aggregate(package_dir, feeds_conf):
     for file_path in ipk_files:
         if os.path.isfile(file_path):
             print(f"\nUploading {os.path.basename(file_path)}...")
-            # Upload to blossom
+
+            # Extract module name from filename
+            filename = os.path.basename(file_path)
+            module_name = filename.split("_")[0]
+            
+            # Map module name to directory name
+            module_dir_map = {
+                "golang": "lang",
+                "golang-src": "lang",
+                "golang-doc": "lang",
+                "tollgate-module-valve-go": "valve",
+                "tollgate-module-merchant-go": "merchant",
+                "tollgate-module-relay-go": "tollgate-module-relay-go",
+                "tollgate-module-whoami-go": "whoami",
+                "tollgate-module-crowsnest-go": "crowsnest",
+            }
+            
+            module_dir = module_dir_map.get(module_name, module_name)
+
+            # Construct the Makefile path
+            makefile_path = os.path.join(sdk_path, "feeds", "custom", module_dir, "Makefile")
+            print(f"makefile_path: {makefile_path}")
+
+            
+            branch_name = "unknown"
+            commit_hash = "unknown"
+            
+            if os.path.exists(makefile_path):
+                with open(makefile_path, 'r') as f:
+                    for line in f:
+                        print("line: " + str(line))
+                        if line.startswith("PKG_SOURCE_VERSION:="):
+                            branch_name = line.split(":=")[1].strip()
+                            print(f"branch_name after reading: {branch_name}")
+                        if line.startswith("PKG_SOURCE_COMMIT:="):
+                            commit_hash = line.split(":=")[1].strip()
+
             blossom_result = run_blossom_upload(file_path)
             
             # Check if there was an error
@@ -85,15 +121,17 @@ def aggregate(package_dir, feeds_conf):
             filename = os.path.basename(file_path)
             result["binaries"][filename] = {
                 "file_hash": list(blossom_result.keys())[0],
-                "servers": list(blossom_result.values())[0]
+                "servers": list(blossom_result.values())[0],
+                "branch": branch_name,
+                "commit": commit_hash
             }
             print(f"Successfully uploaded {filename}")
 
     return json.dumps(result, indent=2)
 
-def create_nostr_event(package_dir, feeds_conf):
+def create_nostr_event(package_dir, feeds_conf, sdk_path):
     # Get the JSON result
-    json_result = aggregate(package_dir, feeds_conf)
+    json_result = aggregate(package_dir, feeds_conf, sdk_path)
     
     # Parse the JSON to extract target info for hashtags
     result_dict = json.loads(json_result)
@@ -142,15 +180,16 @@ def publish_note(data):
     relay_manager.close_connections()
  
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         error = {
-            "error": f"Usage: {sys.argv[0]} <path_to_packages_directory> <path_to_feeds.conf>"
+            "error": f"Usage: {sys.argv[0]} <path_to_packages_directory> <path_to_feeds.conf> <sdk_path>"
         }
         print(json.dumps(error, indent=2), file=sys.stderr)
         sys.exit(1)
 
     package_dir = sys.argv[1]
     feeds_conf = sys.argv[2]
+    sdk_path = sys.argv[3]
 
     if not os.path.isdir(package_dir):
         print(json.dumps({"error": f"Directory not found: {package_dir}"}, indent=2), file=sys.stderr)
@@ -160,16 +199,18 @@ def main():
         print(json.dumps({"error": f"File not found: {feeds_conf}"}, indent=2), file=sys.stderr)
         sys.exit(1)
 
+    if not os.path.isdir(sdk_path):
+        print(json.dumps({"error": f"SDK directory not found: {sdk_path}"}, indent=2))
+        sys.exit(1)
+
     # Print final aggregated JSON
-    nostr_event=create_nostr_event(package_dir, feeds_conf)
-    json_result = aggregate(package_dir, feeds_conf)
+    nostr_event=create_nostr_event(package_dir, feeds_conf, sdk_path)
+    json_result = aggregate(package_dir, feeds_conf, sdk_path)
 
     # Write to note.md
     note_path = Path('note.md')
     
-    # write_note(nostr_event, note_path)
     publish_note(nostr_event)
-    # print(nostr_event)
     print(json_result)
 
 
