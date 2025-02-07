@@ -9,7 +9,11 @@ SDK_DIR = "/tmp/test_packages/openwrt-sdk-23.05.0-aarch64_cortex-a53"
 IPK_DIR = SDK_DIR + "/packages"
 ARCH_DIR = IPK_DIR + "/aarch64_cortex-a53"
 os.makedirs(ARCH_DIR, exist_ok=True)
-FEEDS_CONF = os.path.join("/tmp", "test_feeds.conf")
+FEEDS_PARENT = SDK_DIR # "/tmp"
+MAKEDIR = os.path.join(FEEDS_PARENT, "feeds/custom/dummy/")
+os.makedirs(os.path.dirname(MAKEDIR), exist_ok=True)
+MAKEFILE = os.path.join(MAKEDIR, "Makefile")
+FEEDS_CONF = os.path.join(SDK_DIR, "feeds.conf")
 AGGREGATE_INFO_SCRIPT = "aggregate_info.py"
 
 @pytest.fixture(scope="module")
@@ -24,14 +28,19 @@ def setup_teardown():
     with open(FEEDS_CONF, "w") as f:
         f.write("""src-git base git://github.com/openwrt/packages\n""")
         f.write("""src-link custom /usr/lib/openwrt/custom-feeds/packages\n""")
+
+    with open(MAKEFILE, "w") as f:
+        f.write("""PKG_SOURCE_URL:=https://github.com/OpenTollGate/tollgate-module-relay-go.git\n""")
+        f.write("""PKG_SOURCE_VERSION:=main\n""")
     
     # Yield control to the test function
     yield
 
     # Teardown: Remove the created files and directories
     import shutil
-    shutil.rmtree(SDK_DIR)
     os.remove(FEEDS_CONF)
+    shutil.rmtree(SDK_DIR)
+
 
 def test_blossom_installed():
     result = subprocess.run(["blossom", "--version"], capture_output=True, text=True)
@@ -42,7 +51,7 @@ def test_aggregate_info_simple(setup_teardown):
     import re
 
     # Run the aggregate_info.py script and capture the output
-    command = ["python3", AGGREGATE_INFO_SCRIPT, ARCH_DIR, FEEDS_CONF]
+    command = ["python3", AGGREGATE_INFO_SCRIPT, ARCH_DIR, FEEDS_CONF, FEEDS_PARENT]
     result = subprocess.run(command, capture_output=True, text=True, check=True)
     output_json = result.stdout
 
