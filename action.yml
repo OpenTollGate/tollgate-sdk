@@ -203,7 +203,7 @@ runs:
       command: |
         ls -R ../
         # cp lang package/feeds/custom/${{ inputs.packageName }}/compile
-        # cp ${{ inputs.makeFilePath }} package/feeds/custom/${{ inputs.packageName }}/compile
+        cp ${{ inputs.makeFilePath }} $SDK_PATH/package/feeds/custom/${{ inputs.packageName }}/.
 
   - name: Build firmware
     id: build_firmware_step
