@@ -219,27 +219,27 @@ runs:
         echo "python3 aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
         python3 aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
 
-#  - name: Build firmware2
-#    env:
-#      MODEL: gl-mt3000
-#      PLATFORM: ${{ env.PLATFORM }}
-#      SUBTARGET: ${{ env.SUBTARGET }}
-#    uses: nick-fields/retry@v2
-#    with:
-#      timeout_minutes: 18
-#      max_attempts: 3
-#      command: |
-#        VERSION=23.05.3
-#        MODULE=${{ inputs.packageName }}
-#        SDKDIR=/tmp/openwrt-sdk
-#        SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-#        cd "${SDK_PATH}"
-#        make defconfig
-#        make package/feeds/custom/golang/compile V=sc
-#        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
-#        BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" | xargs dirname | head -n 1)
-#        echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
-#        echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
+  - name: Build firmware2
+    env:
+      MODEL: gl-mt3000
+      PLATFORM: ${{ env.PLATFORM }}
+      SUBTARGET: ${{ env.SUBTARGET }}
+    uses: nick-fields/retry@v2
+    with:
+      timeout_minutes: 18
+      max_attempts: 3
+      command: |
+        VERSION=23.05.3
+        MODULE=${{ inputs.packageName }}
+        SDKDIR=/tmp/openwrt-sdk
+        SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
+        cd "${SDK_PATH}"
+        make defconfig
+        make package/feeds/custom/golang/compile V=sc
+        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
+        BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" | xargs dirname | head -n 1)
+        echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
+        echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
 #
 #  - name: Run aggregate_info
 #    env:
