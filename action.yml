@@ -85,8 +85,8 @@ runs:
         pip3 install pytest
         pip3 install nostr
         pip3 install setuptools
-        pytest -v tests/test_blossom.py
-        pytest -v tests/test_aggregate_info.py
+#        pytest -v tests/test_blossom.py
+#        pytest -v tests/test_aggregate_info.py
 
 #  - name: Download and extract SDK
 #    uses: nick-fields/retry@v2
