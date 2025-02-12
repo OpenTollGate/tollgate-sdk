@@ -14,6 +14,13 @@ from feed_repo_data import concatenate_repos
 import time
 import ssl
 
+print("=== Debug Information ===")
+print(f"Script starting at: {os.path.abspath(__file__)}")
+print(f"Current working directory: {os.getcwd()}")
+print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
+print(f"Python path: {sys.path}")
+print("=== End Debug Info ===")
+
 SECRETS_FILE="blossom_secrets.json"
 
 def run_blossom_upload(file_path):
@@ -78,19 +85,22 @@ def aggregate(package_dir, feeds_conf, sdk_path):
             filename = os.path.basename(file_path)
             module_name = filename.split("_")[0]
             
+            # TODO: ensure that this map isn't required in future
             # Map module name to directory name
             module_dir_map = {
                 "golang": "lang",
                 "golang-src": "lang",
                 "golang-doc": "lang",
-                "tollgate-module-valve-go": "valve",
-                "tollgate-module-merchant-go": "merchant",
+                "tollgate-module-valve-go": "tollgate-module-valve-go",
+                "tollgate-module-merchant-go": "tollgate-module-merchant-go",
                 "tollgate-module-relay-go": "tollgate-module-relay-go",
-                "tollgate-module-whoami-go": "whoami",
-                "tollgate-module-crowsnest-go": "crowsnest",
+                "tollgate-module-updater-go": "tollgate-module-updater-go",
+                "tollgate-module-whoami-go": "tollgate-module-whoami-go",
+                "tollgate-module-crowsnest-go": "tollgate-module-crowsnest-go",
             }
             
-            module_dir = module_dir_map.get(module_name, module_name)
+            # module_dir = module_dir_map.get(module_name, module_name)
+            module_dir = module_name
 
             # Construct the Makefile path
             makefile_path = os.path.join(sdk_path, "feeds", "custom", module_dir, "Makefile")
@@ -153,36 +163,65 @@ def write_note(data, note_path):
         f.write(data)
 
 def publish_note(data):
-    secrets_path = os.path.join(os.path.dirname(__file__), SECRETS_FILE)
-    with open(secrets_path) as f:
-        secrets = json.load(f)
-        secret_key_hex = secrets['secret_key_hex']
-        relays = secrets['relays']
+    """Publish note to nostr relays with resilient handling"""
+    try:
+        secrets_path = os.path.join(os.path.dirname(__file__), SECRETS_FILE)
+        with open(secrets_path) as f:
+            secrets = json.load(f)
+            secret_key_hex = secrets['secret_key_hex']
+            relays = secrets['relays']
 
-    private_key = PrivateKey(bytes.fromhex(secret_key_hex))
+        private_key = PrivateKey(bytes.fromhex(secret_key_hex))
+        event = Event(content=data, public_key=private_key.public_key.hex())
+        private_key.sign_event(event)
 
-    event = Event(content=data, public_key=private_key.public_key.hex())
-    private_key.sign_event(event)
+        successful_publish = False
+        
+        # Try each relay individually
+        for relay_url in relays:
+            try:
+                # Initialize relay manager with single relay
+                relay_manager = RelayManager()
+                relay_manager.add_relay(relay_url)
+                
+                relay_manager.open_connections({"cert_reqs": ssl.CERT_NONE})
+                time.sleep(1.25)  # give the relay time to connect
+                
+                # Attempt to publish
+                relay_manager.publish_event(event)
+                time.sleep(1)  # wait for publishing
+                
+                successful_publish = True
+                print(f"Successfully published to {relay_url}")
+                
+            except Exception as e:
+                print(f"Failed to publish to {relay_url}: {str(e)}")
+            
+            finally:
+                try:
+                    relay_manager.close_connections()
+                except:
+                    pass
+            
+            # Break if we've had a successful publish
+            if successful_publish:
+                break
+        
+        if not successful_publish:
+            print("Warning: Failed to publish to any relay")
+            # Optionally, you could raise an exception here if you want to fail the script
+            # raise Exception("Failed to publish to any relay")
+        
+        return successful_publish
 
-    relay_manager = RelayManager()
-    for relay in relays:
-        try:
-            relay_manager.add_relay(relay)
-        except Exception as e:
-            print(f"Error adding relay {relay}: {e}")
-
-    relay_manager.open_connections({"cert_reqs": ssl.CERT_NONE})
-    time.sleep(1.25)  # give the relays some time to connect
-    
-    relay_manager.publish_event(event)
-    time.sleep(1) # give time to send
-
-    relay_manager.close_connections()
+    except Exception as e:
+        print(f"Error in publish_note: {str(e)}")
+        return False
  
 def main():
     if len(sys.argv) != 4:
         error = {
-            "error": f"Usage: {sys.argv[0]} <path_to_packages_directory> <path_to_feeds.conf> <sdk_path>"
+            "error": f"Usage: <path_to_packages_directory> <path_to_feeds.conf> <sdk_path>"
         }
         print(json.dumps(error, indent=2), file=sys.stderr)
         sys.exit(1)
@@ -204,13 +243,17 @@ def main():
         sys.exit(1)
 
     # Print final aggregated JSON
-    nostr_event=create_nostr_event(package_dir, feeds_conf, sdk_path)
+    nostr_event = create_nostr_event(package_dir, feeds_conf, sdk_path)
     json_result = aggregate(package_dir, feeds_conf, sdk_path)
 
     # Write to note.md
     note_path = Path('note.md')
     
-    publish_note(nostr_event)
+    # Attempt to publish, but continue even if it fails
+    publish_success = publish_note(nostr_event)
+    if not publish_success:
+        print("Warning: Note publication failed, but continuing with other operations")
+    
     print(json_result)
 
 

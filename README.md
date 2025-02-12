@@ -81,6 +81,12 @@ Hello world, this is a C++14 test
 
 ```
 
+### Updating a module:
+```
+opkg remove tollgate-module-[module-name]-go
+opkg install [module-ipk-name].ipk
+```
+
 ### Debugging:
 
 ```
