@@ -201,9 +201,9 @@ runs:
       timeout_minutes: 5
       max_attempts: 3
       command: |
-        ls -R
+        ls -R ../
         # cp lang package/feeds/custom/${{ inputs.packageName }}/compile
-        cp ${{ inputs.makeFilePath }} package/feeds/custom/${{ inputs.packageName }}/compile
+        # cp ${{ inputs.makeFilePath }} package/feeds/custom/${{ inputs.packageName }}/compile
 
   - name: Build firmware
     id: build_firmware_step
