@@ -14,20 +14,17 @@ runs:
   using: "composite"
   steps:
   - name: Setup python 3.12
-    timeout-minutes: 1
     uses: actions/setup-python@v4
     with:
       python-version: "3.12"
 
   - name: Install dependencies
-    timeout-minutes: 1
     shell: bash
     run: |
       sudo apt-get update
       # sudo apt-get install -y python3-setuptools
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz
   - name: Install Go
-    timeout-minutes: 1
     shell: bash
     run: |
       if [ ! -x "/usr/local/go/bin/go" ]; then
