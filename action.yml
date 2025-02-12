@@ -207,20 +207,6 @@ runs:
         mkdir -p $SDK_PATH/package/${{ inputs.packageName }}
         cp ${{ inputs.makeFilePath }} $SDK_PATH/package/${{ inputs.packageName }}/.
 
-  - name: Build firmware
-    id: build_firmware_step
-    env:
-      MODEL: gl-mt3000
-      PLATFORM: ${{ env.PLATFORM }}
-      SUBTARGET: ${{ env.SUBTARGET }}
-    uses: nick-fields/retry@v2
-    with:
-      timeout_minutes: 5
-      max_attempts: 3
-      command: |
-        ls -R /home/runner/work/tollgate-module-relay-go/
-        echo "python3 ./aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
-        python3 ./aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
 
   - name: Build firmware2
     env:
