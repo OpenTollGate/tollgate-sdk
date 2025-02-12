@@ -10,73 +10,73 @@ inputs:
   makeFilePath:
     description: 'The full filePath of the makeFile to use'
     required: true
-  runs:
-    using: "composite"
-    steps:
-    - name: Setup python 3.12
-      timeout-minutes: 1
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.12"
+runs:
+  using: "composite"
+  steps:
+  - name: Setup python 3.12
+    timeout-minutes: 1
+    uses: actions/setup-python@v4
+    with:
+      python-version: "3.12"
 
-    - name: Install dependencies
-      timeout-minutes: 1
-      shell: bash
-      run: |
-        sudo apt-get update
-        # sudo apt-get install -y python3-setuptools
-        sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz
-    - name: Install Go
-      timeout-minutes: 1
-      shell: bash
-      run: |
-        if [ ! -x "/usr/local/go/bin/go" ]; then
-          echo "Installing Go..."
-          wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
-          sudo rm -rf /usr/local/go
-          sudo tar -I pigz -C /usr/local -xf go1.23.4.linux-amd64.tar.gz
-          export PATH=$PATH:/usr/local/go/bin
-          echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-          rm go1.23.4.linux-amd64.tar.gz
+  - name: Install dependencies
+    timeout-minutes: 1
+    shell: bash
+    run: |
+      sudo apt-get update
+      # sudo apt-get install -y python3-setuptools
+      sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz
+  - name: Install Go
+    timeout-minutes: 1
+    shell: bash
+    run: |
+      if [ ! -x "/usr/local/go/bin/go" ]; then
+        echo "Installing Go..."
+        wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go
+        sudo tar -I pigz -C /usr/local -xf go1.23.4.linux-amd64.tar.gz
+        export PATH=$PATH:/usr/local/go/bin
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        rm go1.23.4.linux-amd64.tar.gz
+      fi
+
+  - name: Install Blossom
+    uses: nick-fields/retry@v2
+    shell: bash
+    with:
+      timeout_minutes: 1
+      max_attempts: 3
+      command: |
+        # Preserve the original user's GOPATH
+        export GOPATH="$HOME/go"
+        export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+
+        # Create a directory for the project
+        echo "Creating directory for Blossom..."
+        sudo mkdir -p /opt/blossom
+        cd /opt/blossom
+
+        # Clone the repository if not exists
+        if [ ! -d "blossom" ]; then
+            git clone https://git.fiatjaf.com/blossom .
         fi
 
-    - name: Install Blossom
-      uses: nick-fields/retry@v2
-      shell: bash
-      with:
-        timeout_minutes: 1
-        max_attempts: 3
-        command: |
-          # Preserve the original user's GOPATH
-          export GOPATH="$HOME/go"
-          export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+        # Download Go dependencies
+        echo "Downloading Go dependencies..."
+        go mod download
 
-          # Create a directory for the project
-          echo "Creating directory for Blossom..."
-          sudo mkdir -p /opt/blossom
-          cd /opt/blossom
+        # Build the project
+        echo "Building Blossom..."
+        go build -o blossom .
 
-          # Clone the repository if not exists
-          if [ ! -d "blossom" ]; then
-              git clone https://git.fiatjaf.com/blossom .
-          fi
+        # Make the binary executable and move to system-wide location
+        echo "Installing Blossom system-wide..."
+        chmod +x blossom
+        sudo cp blossom /usr/local/bin/
 
-          # Download Go dependencies
-          echo "Downloading Go dependencies..."
-          go mod download
-
-          # Build the project
-          echo "Building Blossom..."
-          go build -o blossom .
-
-          # Make the binary executable and move to system-wide location
-          echo "Installing Blossom system-wide..."
-          chmod +x blossom
-          sudo cp blossom /usr/local/bin/
-
-          # Print success message
-          echo "Blossom has been successfully installed!"
-          echo "The blossom binary is now available system-wide in /usr/local/bin"
+        # Print success message
+        echo "Blossom has been successfully installed!"
+        echo "The blossom binary is now available system-wide in /usr/local/bin"
 
 #    - name: Install python dependancies and run tests
 #      uses: nick-fields/retry@v2
