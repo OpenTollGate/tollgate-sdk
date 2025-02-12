@@ -189,7 +189,7 @@ runs:
           chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
         fi
 
-        # cp "${SCRIPT_DIR}"/feeds.conf "${SDK_PATH}"/feeds.conf
+        cp "${SCRIPT_DIR}"/feeds.conf "${SDK_PATH}"/feeds.conf # TODO: no custom feed
         cd "${SDK_PATH}"
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -202,7 +202,7 @@ runs:
       max_attempts: 3
       command: |
         ls -R
-        cp lang package/feeds/custom/${{ inputs.packageName }}/compile
+        # cp lang package/feeds/custom/${{ inputs.packageName }}/compile
         cp ${{ inputs.makeFilePath }} package/feeds/custom/${{ inputs.packageName }}/compile
 
   - name: Build firmware
