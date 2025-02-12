@@ -201,8 +201,10 @@ runs:
       timeout_minutes: 5
       max_attempts: 3
       command: |
-        ls -R ../
+        ls $SDK_PATH/package/feeds
+        ls -R $SDK_PATH/package/feeds/custom
         # cp lang package/feeds/custom/${{ inputs.packageName }}/compile
+        mkdir -p $SDK_PATH/package/feeds/custom/${{ inputs.packageName }}
         cp ${{ inputs.makeFilePath }} $SDK_PATH/package/feeds/custom/${{ inputs.packageName }}/.
 
   - name: Build firmware
@@ -240,16 +242,16 @@ runs:
         BUILT_PACKAGES_DIR=$(find "${SDK_PATH}/bin/packages" -name "tollgate-module-*.ipk" | xargs dirname | head -n 1)
         echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
         echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
-#
-#  - name: Run aggregate_info
-#    env:
-#      BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
-#      SCRIPT_DIR: ${{ env.SCRIPT_DIR }}
-#      SDK_PATH: ${{ env.SDK_PATH }}
-#    uses: nick-fields/retry@v2
-#    with:
-#      timeout_minutes: 5
-#      max_attempts: 3
-#      command: |
-#        echo "python3 aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
-#        python3 aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
+
+  - name: Run aggregate_info
+    env:
+      BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
+      SCRIPT_DIR: ${{ env.SCRIPT_DIR }}
+      SDK_PATH: ${{ env.SDK_PATH }}
+    uses: nick-fields/retry@v2
+    with:
+      timeout_minutes: 5
+      max_attempts: 3
+      command: |
+        echo "python3 aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
+        python3 aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
