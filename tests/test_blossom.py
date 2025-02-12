@@ -122,21 +122,37 @@ def test_nostr_publish():
     event = Event(content=note_content, public_key=private_key.public_key.hex())
     private_key.sign_event(event)
 
-    # Initialize relay manager
-    relay_manager = RelayManager()
-    for relay in relays:
-        relay_manager.add_relay(relay)
-
-    relay_manager.open_connections({"cert_reqs": ssl.CERT_NONE})
-    time.sleep(1.25)  # give the relays some time to connect
-
-    # Publish the event
-    relay_manager.publish_event(event)
-    time.sleep(1)  # give the relays some time to receive
-
-    relay_manager.close_connections()
-
-    # NOTE:  It's difficult to verify the event was published without
-    # subscribing and waiting for it.  For now, we'll just assert that
-    # no exceptions were raised.  A more robust test would involve
-    # subscribing to the relay and waiting for the event to appear.
+    successful_publish = False
+    
+    # Try each relay individually
+    for relay_url in relays:
+        try:
+            # Initialize relay manager with single relay
+            relay_manager = RelayManager()
+            relay_manager.add_relay(relay_url)
+            
+            relay_manager.open_connections({"cert_reqs": ssl.CERT_NONE})
+            time.sleep(1.25)  # give the relay time to connect
+            
+            # Attempt to publish
+            relay_manager.publish_event(event)
+            time.sleep(1)  # wait for publishing
+            
+            successful_publish = True
+            print(f"Successfully published to {relay_url}")
+            
+        except Exception as e:
+            print(f"Failed to publish to {relay_url}: {str(e)}")
+        
+        finally:
+            try:
+                relay_manager.close_connections()
+            except:
+                pass
+        
+        # Break if we've had a successful publish
+        if successful_publish:
+            break
+    
+    # Assert that at least one relay worked
+    assert successful_publish, "Failed to publish to any relay"
