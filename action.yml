@@ -230,6 +230,12 @@ runs:
         echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
         echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
 
+#  - name: Upload to Blossom
+#    uses: Origami74/upload-blossom-action@main
+#    with:
+#      host: 'https://blossom.swissdash.site/'
+#      filePath: 'path/to/ipkfile.ipk'
+
   - name: Run aggregate_info
     env:
       BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
