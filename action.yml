@@ -1,3 +1,4 @@
+# action.yml
 name: 'Build OpenWRT IPK'
 description: 'Builds an OpenWRT package'
 branding:
@@ -10,6 +11,10 @@ inputs:
   makeFilePath:
     description: 'The full filePath of the makeFile to use'
     required: true
+outputs:
+  package_path:
+    description: 'Path to the built package'
+    value: ${{ steps.build_firmware.outputs.package_path }}
 runs:
   using: "composite"
   steps:
@@ -22,7 +27,6 @@ runs:
     shell: bash
     run: |
       sudo apt-get update
-      # sudo apt-get install -y python3-setuptools
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz
 
   - name: Install Go
@@ -38,55 +42,15 @@ runs:
         rm go1.23.4.linux-amd64.tar.gz
       fi
 
-#  - name: Install Blossom
-#    uses: nick-fields/retry@v2
-#    with:
-#      timeout_minutes: 1
-#      max_attempts: 3
-#      command: |
-#        # Preserve the original user's GOPATH
-#        export GOPATH="$HOME/go"
-#        export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
-#
-#        # Create a directory for the project
-#        echo "Creating directory for Blossom..."
-#        sudo mkdir -p /opt/blossom
-#        cd /opt/blossom
-#
-#        # Clone the repository if not exists
-#        if [ ! -d "blossom" ]; then
-#            git clone https://git.fiatjaf.com/blossom .
-#        fi
-#
-#        # Download Go dependencies
-#        echo "Downloading Go dependencies..."
-#        go mod download
-#
-#        # Build the project
-#        echo "Building Blossom..."
-#        go build -o blossom .
-#
-#        # Make the binary executable and move to system-wide location
-#        echo "Installing Blossom system-wide..."
-#        chmod +x blossom
-#        sudo cp blossom /usr/local/bin/
-#
-#        # Print success message
-#        echo "Blossom has been successfully installed!"
-#        echo "The blossom binary is now available system-wide in /usr/local/bin"
-
   - name: Install python dependancies and run tests
     uses: nick-fields/retry@v2
     with:
       timeout_minutes: 10
       max_attempts: 3
       command: |
-        # source .venv/bin/activate
         pip3 install pytest
         pip3 install nostr
         pip3 install setuptools
-#        pytest -v tests/test_blossom.py
-#        pytest -v tests/test_aggregate_info.py
 
   - name: Download and extract SDK
     uses: nick-fields/retry@v2
@@ -194,19 +158,8 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-#  - name: Copy makefile into SDK
-#    id: copy_makefile_step
-#    uses: nick-fields/retry@v2
-#    with:
-#      timeout_minutes: 5
-#      max_attempts: 3
-#      command: |
-#        # cp lang package/feeds/custom/${{ inputs.packageName }}/compile
-#        mkdir -p $SDK_PATH/package/${{ inputs.packageName }}
-#        cp ${{ inputs.makeFilePath }} $SDK_PATH/package/${{ inputs.packageName }}/.
-
-
-  - name: Build firmware2
+  - name: Build firmware
+    id: build_firmware
     env:
       MODEL: gl-mt3000
       PLATFORM: ${{ env.PLATFORM }}
@@ -223,11 +176,11 @@ runs:
         SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
         cd "${SDK_PATH}"
         make defconfig
-        make package/feeds/custom/golang/compile #V=sc
+        make package/feeds/custom/golang/compile V=sc
         
         mkdir -p $SDK_PATH/include
-        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk # TODO: list of includes should be composite actions input
-        make package/feeds/custom/${{ inputs.packageName }}/compile # V=sc
+        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
         
         echo "built packages:"
         ls -R ${SDK_PATH}/bin/packages
@@ -235,44 +188,4 @@ runs:
         PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${{ inputs.packageName }}*.ipk" | head -n 1)
         echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
         echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
-
-#  - name: Run aggregate_info
-#    continue-on-error: true
-#    env:
-#      BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
-#      SCRIPT_DIR: ${{ env.SCRIPT_DIR }}
-#      SDK_PATH: ${{ env.SDK_PATH }}
-#    uses: nick-fields/retry@v2
-#    with:
-#      timeout_minutes: 5
-#      max_attempts: 1
-#      command: |
-#        ls -la  ${{ env.BUILT_PACKAGES_DIR }}
-#        echo "python3 ${{github.action_path}}/aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
-#        python3 ${{github.action_path}}/aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
-
-  - name: Upload to Blossom
-    uses: Origami74/upload-blossom-action@main
-    env:
-      BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
-      PACKAGE_FULLPATH: ${{ env.PACKAGE_FULLPATH }}
-    with:
-      host: 'https://blossom.swissdash.site/'
-      filePath: '${{ env.PACKAGE_FULLPATH }}'
-
-#   PSEUDO CODE
-#  - name: Create release event on Nostr
-#    uses: Origami74/publish-release-note-nostr@main
-#    env:
-#      IPK_HASH: ${{ env.IPK_HASH }}
-#      IPK_VERSION: ${{ env.IPK_VERSION }}
-#    with:
-#      blossom-servers:
-#        - 'https://blossom.swissdash.site/'
-#        - 'https://blossom.yoursite.com/'
-#      nostr-relays:
-#        - 'wss://relay.damus.io/'
-#        - 'wss://relay.yoursite.com/'
-#      fileHash: '${{ env.IPK_HASH }}'
-#      version: '${{ env.IPK_VERSION }}'
+        echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
