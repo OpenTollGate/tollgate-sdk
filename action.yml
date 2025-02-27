@@ -158,8 +158,8 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-
   - name: Build firmware
+    id: build_firmware
     env:
       MODEL: gl-mt3000
       PLATFORM: ${{ env.PLATFORM }}
@@ -188,4 +188,4 @@ runs:
         PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${{ inputs.packageName }}*.ipk" | head -n 1)
         echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
         echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
+        echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
