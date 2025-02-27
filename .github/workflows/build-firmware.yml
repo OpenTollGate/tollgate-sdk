@@ -1,3 +1,4 @@
+# .github/workflows/build-firmware.yml
 name: Build Firmware
 
 on:
@@ -27,6 +28,13 @@ jobs:
 
       - name: Build OpenWRT Package
         uses: ./ # Uses the local action
+        id: build
         with:
           packageName: ${{ matrix.module }}
-          makeFilePath: ${{ github.workspace }}/Makefile # Adjust path as needed
+          makeFilePath: ${{ github.workspace }}/Makefile
+
+      - name: Upload to Blossom
+        uses: Origami74/upload-blossom-action@main
+        with:
+          host: 'https://blossom.swissdash.site/'
+          filePath: ${{ steps.build.outputs.package_path }}

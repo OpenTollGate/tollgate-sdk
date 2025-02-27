@@ -1,3 +1,4 @@
+# action.yml
 name: 'Build OpenWRT IPK'
 description: 'Builds an OpenWRT package'
 branding:
@@ -10,6 +11,10 @@ inputs:
   makeFilePath:
     description: 'The full filePath of the makeFile to use'
     required: true
+outputs:
+  package_path:
+    description: 'Path to the built package'
+    value: ${{ env.PACKAGE_FULLPATH }}
 runs:
   using: "composite"
   steps:
@@ -22,7 +27,6 @@ runs:
     shell: bash
     run: |
       sudo apt-get update
-      # sudo apt-get install -y python3-setuptools
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz
 
   - name: Install Go
@@ -38,14 +42,12 @@ runs:
         rm go1.23.4.linux-amd64.tar.gz
       fi
 
-
   - name: Install python dependancies and run tests
     uses: nick-fields/retry@v2
     with:
       timeout_minutes: 10
       max_attempts: 3
       command: |
-        # source .venv/bin/activate
         pip3 install pytest
         pip3 install nostr
         pip3 install setuptools
@@ -177,7 +179,7 @@ runs:
         make package/feeds/custom/golang/compile V=sc
         
         mkdir -p $SDK_PATH/include
-        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk # TODO: list of includes should be composite actions input
+        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
         make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
         
         echo "built packages:"
@@ -187,13 +189,3 @@ runs:
         echo "BUILT_PACKAGES_DIR=$BUILT_PACKAGES_DIR" >> $GITHUB_ENV
         echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
         echo "SCRIPT_DIR=$SCRIPT_DIR" >> $GITHUB_ENV
-
-  # TODO: do this in workflow that calls this action
-  - name: Upload to Blossom
-    uses: Origami74/upload-blossom-action@main
-    env:
-      BUILT_PACKAGES_DIR: ${{ env.BUILT_PACKAGES_DIR }}
-      PACKAGE_FULLPATH: ${{ env.PACKAGE_FULLPATH }}
-    with:
-      host: 'https://blossom.swissdash.site/'
-      filePath: '${{ env.PACKAGE_FULLPATH }}'
