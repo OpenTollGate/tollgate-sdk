@@ -33,8 +33,10 @@ jobs:
           packageName: ${{ matrix.module }}
           makeFilePath: ${{ github.workspace }}/Makefile
 
-      - name: Upload to Blossom
-        uses: Origami74/upload-blossom-action@main
+      - name: Upload Package to Blossom
+        id: upload_package
+        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
-          host: 'https://blossom.swissdash.site/'
+          host: "https://blossom.swissdash.site"
           filePath: ${{ steps.build.outputs.package_path }}
+          nostrPrivateKey: ${{ secrets.NSEC }}
