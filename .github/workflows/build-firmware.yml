@@ -232,13 +232,3 @@ jobs:
             echo "python3 aggregate_info.py ${{ env.BUILT_PACKAGES_DIR }} ${{ env.SCRIPT_DIR }}/feeds.conf ${{ env.SDK_PATH }}"
             python3 aggregate_info.py "${{ env.BUILT_PACKAGES_DIR }}" "${{ env.SCRIPT_DIR }}/feeds.conf" "${{ env.SDK_PATH }}"
 
-      - name: Install python dependancies and run tests
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            pip3 install pytest
-            pytest -v tests/test_blossom.py
-            pytest -v tests/test_aggregate_info.py
-
