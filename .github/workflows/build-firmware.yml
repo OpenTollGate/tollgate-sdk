@@ -33,6 +33,11 @@ jobs:
           packageName: ${{ matrix.module }}
           makeFilePath: ${{ github.workspace }}/Makefile
 
+      - name: Debug Package Path
+        run: |
+          echo "Package Path: ${{ steps.build.outputs.package_path }}"
+          ls -l "${{ steps.build.outputs.package_path }}"
+
       - name: Upload Package to Blossom
         id: upload_package
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state

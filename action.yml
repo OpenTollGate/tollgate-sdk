@@ -14,7 +14,7 @@ inputs:
 outputs:
   package_path:
     description: 'Path to the built package'
-    value: ${{ env.PACKAGE_FULLPATH }}
+    value: ${{ steps.build_firmware.outputs.package_path }}
 runs:
   using: "composite"
   steps:
