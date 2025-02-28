@@ -39,10 +39,10 @@ jobs:
           makeFilePath: ${{ github.workspace }}/Makefile
           model: ${{ matrix.target.model }}
 
-      - name: Debug Package Path
-        run: |
-          echo "Package Path: ${{ steps.build.outputs.package_path }}"
-          ls -l "${{ steps.build.outputs.package_path }}"
+      #- name: Debug Package Path
+      #  run: |
+      #    echo "Package Path: ${{ steps.build.outputs.package_path }}"
+      #    ls -l "${{ steps.build.outputs.package_path }}"
 
       - name: Upload Package to Blossom
         id: upload_package
