@@ -202,8 +202,8 @@ runs:
         make defconfig
 
         echo "Finished `make defconfig`"
-        echo "ls "
-        ls 
+        echo "ls -la"
+        ls -la
         echo "ls package/"
         ls package/
         echo "ls package/feeds"
@@ -213,6 +213,7 @@ runs:
         echo "ls package/feeds/custom/golang"
         ls package/feeds/custom/golang
 
+        cat .config | grep "golang"
         make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
