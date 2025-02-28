@@ -39,10 +39,15 @@ jobs:
           makeFilePath: ${{ github.workspace }}/Makefile
           model: ${{ matrix.target.model }}
 
-      #- name: Debug Package Path
-      #  run: |
-      #    echo "Package Path: ${{ steps.build.outputs.package_path }}"
-      #    ls -l "${{ steps.build.outputs.package_path }}"
+      - name: Debug Package Path
+        run: |
+          echo "Package Path: ${{ steps.build.outputs.package_path }}"
+          ls -l 
+          ls -l "${{ steps.build.outputs.package_path }}"
+          echo "=== Feed Contents ==="
+          ls -l package/feeds/custom/
+          echo "=== Package Makefile Exists? ==="
+          test -f "package/feeds/custom/${{ inputs.packageName }}/Makefile" && echo "Makefile found" || echo "MAKEFILE MISSING"
 
       - name: Upload Package to Blossom
         id: upload_package
