@@ -15,13 +15,13 @@ jobs:
         module: [
           "tollgate-module-relay-go",
           "tollgate-module-merchant-go",
-          "tollgate-module-valve-go",
-          "tollgate-module-whoami-go",
-          "tollgate-module-updater-go",
-          "tollgate-module-crowsnest-go"
+          #"tollgate-module-valve-go",
+          #"tollgate-module-whoami-go",
+          #"tollgate-module-updater-go",
+          #"tollgate-module-crowsnest-go"
         ]
         target: [
-          {model: "gl-ar300m"},
+          #{model: "gl-ar300m"},
           {model: "gl-mt3000"},
           {model: "gl-mt6000"}
         ]
