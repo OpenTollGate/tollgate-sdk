@@ -198,21 +198,33 @@ runs:
         cp -r "${{ github.workspace }}/lang/golang" "${SDK_PATH}/package/feeds/custom/"
 
         cd "${SDK_PATH}"
+        echo "ls "
+        ls 
+        echo "ls package/"
+        ls package/
+        echo "ls package/feeds"
+        ls package/feeds
+        echo "ls package/feeds/custom"
+        ls package/feeds/custom
+        echo "ls package/feeds/custom/golang"
+        ls package/feeds/custom/golang
+
         make defconfig
         make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
         mkdir -p $SDK_PATH/include
         echo "github.action_path: ${{github.action_path}}"
-        echo "ls github.action_path"
-        ls ${{github.action_path}}
+        # echo "ls github.action_path"
+        # ls ${{github.action_path}}
 
-        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
+        # cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+        # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
 
         # Debug output to see what was built
         echo "Contents of bin/packages directory:"
         find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
+
         # Find the package more robustly
         PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
         if [ -z "$PACKAGE_FULLPATH" ]; then
