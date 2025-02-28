@@ -190,7 +190,13 @@ runs:
         echo "Platform: ${{ env.PLATFORM }}"
         echo "Subtarget: ${{ env.SUBTARGET }}"
         echo "Package name: ${{ inputs.packageName }}"
-        
+
+        # After extracting SDK
+        echo "Copying custom packages..."
+        mkdir -p "${SDK_PATH}/package/feeds/custom"
+        echo "cp -r ${{ github.workspace }}/lang/golang ${SDK_PATH}/package/feeds/custom/"
+        cp -r "${{ github.workspace }}/lang/golang" "${SDK_PATH}/package/feeds/custom/"
+
         cd "${SDK_PATH}"
         make defconfig
         make package/feeds/custom/golang/compile V=sc
