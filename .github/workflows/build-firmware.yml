@@ -20,6 +20,11 @@ jobs:
           "tollgate-module-updater-go",
           "tollgate-module-crowsnest-go"
         ]
+        target: [
+          {model: "gl-ar300m"}
+          {model: "gl-mt3000"}
+          {model: "gl-mt6000"}
+        ]
       fail-fast: false
 
     steps:
@@ -32,6 +37,7 @@ jobs:
         with:
           packageName: ${{ matrix.module }}
           makeFilePath: ${{ github.workspace }}/Makefile
+          model: ${{ matrix.target.model }}
 
       - name: Debug Package Path
         run: |

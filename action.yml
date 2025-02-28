@@ -11,6 +11,10 @@ inputs:
   makeFilePath:
     description: 'The full filePath of the makeFile to use'
     required: true
+  model:
+    description: 'The device model (e.g., gl-mt3000, gl-ar300m)'
+    required: true
+    default: 'gl-mt3000'
 outputs:
   package_path:
     description: 'Path to the built package'
@@ -55,14 +59,14 @@ runs:
   - name: Download and extract SDK
     uses: nick-fields/retry@v2
     env:
-      MODEL: gl-mt3000
+      MODEL: ${{ inputs.model }}
     with:
       timeout_minutes: 6
       max_attempts: 3
       command: |
         VERSION=23.05.3
 
-        # Determine PLATFORM and SUBTARGET based on MODEL (same logic as in build-firmware)
+        # Determine PLATFORM and SUBTARGET based on MODEL
         case "${{ env.MODEL }}" in
           "gl-mt300n-v2")
             PLATFORM="ramips"
@@ -86,7 +90,7 @@ runs:
             SUBTARGET="mt7620"
             ;;
           *)
-            echo "Unsupported model"
+            echo "Unsupported model: ${{ env.MODEL }}"
             exit 1
             ;;
         esac
@@ -161,7 +165,7 @@ runs:
   - name: Build firmware
     id: build_firmware
     env:
-      MODEL: gl-mt3000
+      MODEL: ${{ inputs.model }}
       PLATFORM: ${{ env.PLATFORM }}
       SUBTARGET: ${{ env.SUBTARGET }}
     uses: nick-fields/retry@v2
