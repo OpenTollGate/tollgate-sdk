@@ -213,12 +213,13 @@ runs:
         echo "ls package/feeds/custom/golang"
         ls package/feeds/custom/golang
 
+        echo "cat .config | grep golang"
         cat .config | grep "golang"
-        make package/feeds/custom/golang/compile V=sc
+        #make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
-        mkdir -p $SDK_PATH/include
-        echo "github.action_path: ${{github.action_path}}"
+        #mkdir -p $SDK_PATH/include
+        #echo "github.action_path: ${{github.action_path}}"
         # echo "ls github.action_path"
         # ls ${{github.action_path}}
 
