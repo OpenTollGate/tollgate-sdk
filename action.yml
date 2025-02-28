@@ -225,16 +225,16 @@ runs:
         # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
 
         # Debug output to see what was built
-        echo "Contents of bin/packages directory:"
-        find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
+        #echo "Contents of bin/packages directory:"
+        #find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
         # Find the package more robustly
-        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
-        if [ -z "$PACKAGE_FULLPATH" ]; then
-          echo "ERROR: No package file found matching ${{ inputs.packageName }}*.ipk"
-          exit 1
-        else
-          echo "Found package: $PACKAGE_FULLPATH"
-          echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
-          echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        fi
+        #PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
+        #if [ -z "$PACKAGE_FULLPATH" ]; then
+        #  echo "ERROR: No package file found matching ${{ inputs.packageName }}*.ipk"
+        #  exit 1
+        #else
+        #  echo "Found package: $PACKAGE_FULLPATH"
+        #  echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
+        #  echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+        #fi
