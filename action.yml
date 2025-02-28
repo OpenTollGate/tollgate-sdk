@@ -198,6 +198,10 @@ runs:
         cp -r "${{ github.workspace }}/lang/golang" "${SDK_PATH}/package/feeds/custom/"
 
         cd "${SDK_PATH}"
+
+        make defconfig
+
+        echo "Finished `make defconfig`"
         echo "ls "
         ls 
         echo "ls package/"
@@ -209,7 +213,6 @@ runs:
         echo "ls package/feeds/custom/golang"
         ls package/feeds/custom/golang
 
-        make defconfig
         make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
