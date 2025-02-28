@@ -46,6 +46,16 @@ runs:
         rm go1.23.4.linux-amd64.tar.gz
       fi
 
+  - name: Install python dependancies and run tests
+    uses: nick-fields/retry@v2
+    with:
+      timeout_minutes: 10
+      max_attempts: 3
+      command: |
+        # pip3 install pytest
+        # pip3 install nostr
+        pip3 install setuptools
+
   - name: Download and extract SDK
     uses: nick-fields/retry@v2
     env:
