@@ -195,7 +195,13 @@ runs:
         echo "Copying custom packages..."
         mkdir -p "${SDK_PATH}/package/feeds/custom/golang"
         echo "cp -r ${{ github.workspace }}/lang/golang ${SDK_PATH}/package/feeds/custom/"
-        cp -r "${{ github.workspace }}/lang/golang/golang" "${SDK_PATH}/package/feeds/custom/golang"
+        cp -r "${{ github.workspace }}/lang/golang/golang"/* "${SDK_PATH}/package/feeds/custom/golang/"
+
+        mkdir -p "${SDK_PATH}/include"
+        cp "${{ github.workspace }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/include/"
+        cp "${{ github.workspace }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
+        cp "${{ github.workspace }}/lang/golang/golang-values.mk" "${SDK_PATH}/include/"
+        cp "${{ github.workspace }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/include/"
 
         # Check if the Go compiler is in the SDK
         echo "find commands:"
