@@ -215,7 +215,7 @@ runs:
 
         echo "cat .config | grep golang"
         cat .config | grep "golang"
-        #make package/feeds/custom/golang/compile V=sc
+        make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
         #mkdir -p $SDK_PATH/include
