@@ -276,6 +276,8 @@ runs:
         make -C "${SDK_PATH}" package/index
         make -C "${SDK_PATH}" V=s package/lang/golang/compile || true
 
+        make package/feeds/lang/golang/compile V=sc || echo "Second compilation method failed"
+
         # 16. Check for any built packages
         echo "=== Output Packages ==="
         find "${SDK_PATH}" -name "*.ipk" | grep -i golang || echo "No golang packages found"
