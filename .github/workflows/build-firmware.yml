@@ -49,10 +49,10 @@ jobs:
       #    echo "=== Package Makefile Exists? ==="
       #    test -f "package/feeds/custom/${{ inputs.packageName }}/Makefile" && echo "Makefile found" || echo "MAKEFILE MISSING"
 
-      - name: Upload Package to Blossom
-        id: upload_package
-        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
-        with:
-          host: "https://blossom.swissdash.site"
-          filePath: ${{ steps.build.outputs.package_path }}
-          nostrPrivateKey: ${{ secrets.NSEC }}
+      #- name: Upload Package to Blossom
+      #  id: upload_package
+      #  uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
+      #  with:
+      #    host: "https://blossom.swissdash.site"
+      #    filePath: ${{ steps.build.outputs.package_path }}
+      #    nostrPrivateKey: ${{ secrets.NSEC }}
