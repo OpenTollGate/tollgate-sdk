@@ -229,7 +229,7 @@ runs:
         cat .config | grep "golang"
         echo "CONFIG_PACKAGE_golang=y  >> .config"
         echo "CONFIG_PACKAGE_golang=y" >> .config
-        # make package/feeds/custom/golang/compile V=sc
+        make package/feeds/custom/golang/compile V=sc
 
         echo "=== Build Logs ==="
         find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \;
