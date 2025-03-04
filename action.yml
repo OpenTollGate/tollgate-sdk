@@ -198,7 +198,7 @@ runs:
         cp -r "${{ github.workspace }}/lang/golang/golang" "${SDK_PATH}/package/feeds/custom/golang"
 
         # Check if the Go compiler is in the SDK
-	echo "find commands:"
+        echo "find commands:"
         find "${SDK_PATH}" -name "go" -type f -executable
         find "${SDK_PATH}" -name "golang" -type d
 
