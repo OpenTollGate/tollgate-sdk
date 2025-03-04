@@ -193,11 +193,11 @@ runs:
         echo "Setting up golang and required include files..."
 
         # 1. Copy the include files first
-        mkdir -p "${SDK_PATH}/include"
-        cp "${{ github.workspace }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/include/"
-        cp "${{ github.workspace }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
-        cp "${{ github.workspace }}/lang/golang/golang-values.mk" "${SDK_PATH}/include/"
-        cp "${{ github.workspace }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/include/"
+        # mkdir -p "${SDK_PATH}/include"
+        # cp "${{ github.workspace }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/include/"
+        # cp "${{ github.workspace }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
+        # cp "${{ github.workspace }}/lang/golang/golang-values.mk" "${SDK_PATH}/include/"
+        # cp "${{ github.workspace }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/include/"
 
         # 2. Create a proper package directory structure
         mkdir -p "${SDK_PATH}/package/lang/golang"
@@ -247,8 +247,8 @@ runs:
         echo "=== Package Directory ==="
         ls -la "${SDK_PATH}/package/lang/golang" || echo "Golang package directory not found"
 
-        echo "=== Include Files ==="
-        ls -la "${SDK_PATH}/include" | grep golang
+        # echo "=== Include Files ==="
+        # ls -la "${SDK_PATH}/include" | grep golang
 
         echo "=== Feeds Configuration ==="
         cat "${SDK_PATH}/feeds.conf"
@@ -276,37 +276,31 @@ runs:
         echo "=== Build Logs ==="
         find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \; || echo "No log files found"
 
-        # 15. If all else fails, try direct make command
-        # echo "Trying direct make command..."
-        # make -C "${SDK_PATH}" package/index
-        # make -C "${SDK_PATH}" V=s package/lang/golang/compile || true
-
-        # make package/feeds/lang/golang/compile V=sc || echo "Second compilation method failed"
 
         # 16. Check for any built packages
         echo "=== Output Packages ==="
         find "${SDK_PATH}" -name "*.ipk" || echo "No golang packages found"
 
         # Make sure include directory exists and copy golang.mk
-        #mkdir -p $SDK_PATH/include
+        mkdir -p $SDK_PATH/include
         #echo "github.action_path: ${{github.action_path}}"
         #echo "ls github.action_path"
         #ls ${{github.action_path}}
 
-        #cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-        # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
+        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
 
         # Debug output to see what was built
-        #echo "Contents of bin/packages directory:"
-        #find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
+        echo "Contents of bin/packages directory:"
+        find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
         # Find the package more robustly
-        #PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
-        #if [ -z "$PACKAGE_FULLPATH" ]; then
-        #  echo "ERROR: No package file found matching ${{ inputs.packageName }}*.ipk"
-        #  exit 1
-        #else
-        #  echo "Found package: $PACKAGE_FULLPATH"
-        #  echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
-        #  echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        #fi
+        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
+        if [ -z "$PACKAGE_FULLPATH" ]; then
+          echo "ERROR: No package file found matching ${{ inputs.packageName }}*.ipk"
+          exit 1
+        else
+          echo "Found package: $PACKAGE_FULLPATH"
+          echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
+          echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+        fi
