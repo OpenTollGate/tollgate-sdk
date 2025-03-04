@@ -218,12 +218,12 @@ runs:
         make package/feeds/custom/golang/compile V=sc
         
         # Make sure include directory exists and copy golang.mk
-        #mkdir -p $SDK_PATH/include
-        #echo "github.action_path: ${{github.action_path}}"
-        # echo "ls github.action_path"
-        # ls ${{github.action_path}}
+        mkdir -p $SDK_PATH/include
+        echo "github.action_path: ${{github.action_path}}"
+        echo "ls github.action_path"
+        ls ${{github.action_path}}
 
-        # cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
         # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
 
         # Debug output to see what was built
