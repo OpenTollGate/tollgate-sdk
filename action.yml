@@ -207,6 +207,11 @@ runs:
         mkdir -p "${SDK_PATH}/package/lang/golang/files"
         cp -r "${{ github.workspace }}/lang/golang/golang/files"/* "${SDK_PATH}/package/lang/golang/files/" || true
 
+        cp "${{ github.workspace }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/package/lang/golang/"
+        cp "${{ github.workspace }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/golang/"
+        cp "${{ github.workspace }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/golang/"
+        cp "${{ github.workspace }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/golang/"
+
         # Check if the Go compiler is in the SDK
         echo "find commands:"
         find "${SDK_PATH}" -name "go" -type f -executable
