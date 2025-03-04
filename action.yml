@@ -193,12 +193,16 @@ runs:
 
         # After extracting SDK
         echo "Copying custom packages..."
-        mkdir -p "${SDK_PATH}/package/feeds/custom"
+        mkdir -p "${SDK_PATH}/package/feeds/custom/golang"
         echo "cp -r ${{ github.workspace }}/lang/golang ${SDK_PATH}/package/feeds/custom/"
-        cp -r "${{ github.workspace }}/lang/golang" "${SDK_PATH}/package/feeds/custom/"
+        cp -r "${{ github.workspace }}/lang/golang/golang" "${SDK_PATH}/package/feeds/custom/golang"
+
+        # Check if the Go compiler is in the SDK
+	echo "find commands:"
+        find "${SDK_PATH}" -name "go" -type f -executable
+        find "${SDK_PATH}" -name "golang" -type d
 
         cd "${SDK_PATH}"
-
         make defconfig
 
         echo "Finished `make defconfig`"
@@ -226,7 +230,14 @@ runs:
         echo "CONFIG_PACKAGE_golang=y  >> .config"
         echo "CONFIG_PACKAGE_golang=y" >> .config
         # make package/feeds/custom/golang/compile V=sc
-        
+
+        echo "=== Build Logs ==="
+        find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \;
+        find "${SDK_PATH}/logs" -name "*golang*" -exec cat {} \;
+
+        echo "=== Package Output ==="
+        find "${SDK_PATH}/bin/packages" -type f | grep golang
+
         # Make sure include directory exists and copy golang.mk
         #mkdir -p $SDK_PATH/include
         #echo "github.action_path: ${{github.action_path}}"
