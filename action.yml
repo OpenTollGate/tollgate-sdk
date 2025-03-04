@@ -301,7 +301,7 @@ runs:
         echo "CONFIG_PACKAGE_tollgate-module-relay-go=y" >> .config
 
         # Try to compile with the feed path
-        make package/feeds/relay/tollgate-module-relay-go/compile V
+        make package/feeds/relay/tollgate-module-relay-go/compile V=sc
 
         # If that doesn't work, try a direct path
         # You might need to find out the actual path where it's installed
