@@ -277,9 +277,9 @@ runs:
         find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \; || echo "No log files found"
 
         # 15. If all else fails, try direct make command
-        echo "Trying direct make command..."
-        make -C "${SDK_PATH}" package/index
-        make -C "${SDK_PATH}" V=s package/lang/golang/compile || true
+        # echo "Trying direct make command..."
+        # make -C "${SDK_PATH}" package/index
+        # make -C "${SDK_PATH}" V=s package/lang/golang/compile || true
 
         # make package/feeds/lang/golang/compile V=sc || echo "Second compilation method failed"
 
