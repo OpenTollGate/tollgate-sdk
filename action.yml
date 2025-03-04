@@ -288,7 +288,24 @@ runs:
         #ls ${{github.action_path}}
 
         cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-        make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
+        # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
+
+        # Update the relay feed specifically
+        ./scripts/feeds update relay
+        ./scripts/feeds install -a -p relay
+
+        # Check if the relay module is available
+        ./scripts/feeds list -r | grep tollgate-module-relay-go
+
+        # Enable the relay module in the config
+        echo "CONFIG_PACKAGE_tollgate-module-relay-go=y" >> .config
+
+        # Try to compile with the feed path
+        make package/feeds/relay/tollgate-module-relay-go/compile V
+
+        # If that doesn't work, try a direct path
+        # You might need to find out the actual path where it's installed
+        find "${SDK_PATH}/feeds" -name "tollgate-module-relay-go" -type d
 
         # Debug output to see what was built
         echo "Contents of bin/packages directory:"
