@@ -52,8 +52,6 @@ runs:
       timeout_minutes: 10
       max_attempts: 3
       command: |
-        # pip3 install pytest
-        # pip3 install nostr
         pip3 install setuptools
 
   - name: Download and extract SDK
@@ -231,11 +229,13 @@ runs:
         echo "=== SDK Config ==="
         grep -i "golang" "${SDK_PATH}/.config"
 
-        echo "cat .config | grep golang"
-        cat .config | grep "golang"
         echo "CONFIG_PACKAGE_golang=y  >> .config"
         echo "CONFIG_PACKAGE_golang=y" >> .config
-        make package/feeds/custom/golang/compile V=sc
+        make package/feeds/custom/golang/compile V=sc >> compile_log.md
+	tail compile_log.md
+
+        echo "cat .config | grep golang"
+        cat .config | grep "golang"
 
         echo "=== Build Logs ==="
         find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \;
