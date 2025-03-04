@@ -189,60 +189,96 @@ runs:
         echo "Subtarget: ${{ env.SUBTARGET }}"
         echo "Package name: ${{ inputs.packageName }}"
 
-        # After extracting SDK
-        echo "Copying custom packages..."
-        mkdir -p "${SDK_PATH}/package/feeds/custom/golang"
-        echo "cp -r ${{ github.workspace }}/lang/golang ${SDK_PATH}/package/feeds/custom/"
-        cp -r "${{ github.workspace }}/lang/golang/golang"/* "${SDK_PATH}/package/feeds/custom/golang/"
+        # Set up correct package directory structure
+        echo "Setting up golang and required include files..."
 
+        # 1. Copy the include files first
         mkdir -p "${SDK_PATH}/include"
         cp "${{ github.workspace }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/include/"
         cp "${{ github.workspace }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
         cp "${{ github.workspace }}/lang/golang/golang-values.mk" "${SDK_PATH}/include/"
         cp "${{ github.workspace }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/include/"
 
+        # 2. Create a proper package directory structure
+        mkdir -p "${SDK_PATH}/package/lang/golang"
+        cp -r "${{ github.workspace }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
+
+        # 3. Make sure the files directory exists and copy files
+        mkdir -p "${SDK_PATH}/package/lang/golang/files"
+        cp -r "${{ github.workspace }}/lang/golang/golang/files"/* "${SDK_PATH}/package/lang/golang/files/" || true
+
         # Check if the Go compiler is in the SDK
         echo "find commands:"
         find "${SDK_PATH}" -name "go" -type f -executable
         find "${SDK_PATH}" -name "golang" -type d
 
-        cd "${SDK_PATH}"
-        make defconfig
+        # 4. Create a feeds.conf.default with your custom package
+        #echo "src-link custom ${SDK_PATH}/package" > "${SDK_PATH}/feeds.conf.default"
+        #echo "src-git packages https://git.openwrt.org/feed/packages.git" >> "${SDK_PATH}/feeds.conf.default"
 
+        # 5. Go to SDK directory
+        cd "${SDK_PATH}"
+
+        # 6. Update and install feeds
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+        # 7. Manually create a package index for the custom feed
+        echo "Creating package index..."
+        ./scripts/feeds uninstall golang || true
+        ./scripts/feeds install -p custom lang/golang
+      
+        # 8. Configure the build system
+        make defconfig
+      
+        # 9. Enable golang package
+        echo "CONFIG_PACKAGE_golang=y" >> .config
+
+        # 10. Debug information
         echo "Finished `make defconfig`"
         echo "=== SDK Structure ==="
         ls -la "${SDK_PATH}"
 
-        echo "=== Feed Packages ==="
-        ls -la "${SDK_PATH}/package/feeds"
+        echo "=== Package Directory ==="
+        ls -la "${SDK_PATH}/package/lang/golang" || echo "Golang package directory not found"
 
-        echo "=== Custom Packages ==="
-        ls -la "${SDK_PATH}/package/feeds/custom"
+        echo "=== Include Files ==="
+        ls -la "${SDK_PATH}/include" | grep golang
 
-        echo "=== Golang Package Files ==="
-        ls -la "${SDK_PATH}/package/feeds/custom/golang"
-        ls -la "${SDK_PATH}/package/feeds/custom/golang/golang"
+        echo "=== Feeds Configuration ==="
+        cat "${SDK_PATH}/feeds.conf"
 
+        echo "=== Installed Packages ==="
+        ./scripts/feeds list -r | grep golang
+      
+        # 11. Try to display the package Makefile
         echo "=== Golang Makefile ==="
-        cat "${SDK_PATH}/package/feeds/custom/golang/golang/Makefile"
+        cat "${SDK_PATH}/package/lang/golang/Makefile" || echo "Makefile not found"
 
-        echo "=== SDK Config ==="
-        grep -i "golang" "${SDK_PATH}/.config"
+        # 12. Try compiling with full path
+        echo "Compiling golang..."
+        make package/lang/golang/compile V=sc || echo "Failed to compile golang"
 
-        echo "CONFIG_PACKAGE_golang=y  >> .config"
-        echo "CONFIG_PACKAGE_golang=y" >> .config
-        make package/feeds/custom/golang/compile V=sc >> compile_log.md
-	tail compile_log.md
+        # 13. Use find to locate any golang-related files in the build system
+        echo "=== Finding golang in build system ==="
+        find "${SDK_PATH}" -name golang -type d
+        find "${SDK_PATH}" -name "golang*.mk"
 
         echo "cat .config | grep golang"
         cat .config | grep "golang"
 
+        # 14. Check for any build logs
         echo "=== Build Logs ==="
-        find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \;
-        find "${SDK_PATH}/logs" -name "*golang*" -exec cat {} \;
+        find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \; || echo "No log files found"
 
-        echo "=== Package Output ==="
-        find "${SDK_PATH}/bin/packages" -type f | grep golang
+        # 15. If all else fails, try direct make command
+        echo "Trying direct make command..."
+        make -C "${SDK_PATH}" package/index
+        make -C "${SDK_PATH}" V=s package/lang/golang/compile || true
+
+        # 16. Check for any built packages
+        echo "=== Output Packages ==="
+        find "${SDK_PATH}" -name "*.ipk" | grep -i golang || echo "No golang packages found"
 
         # Make sure include directory exists and copy golang.mk
         #mkdir -p $SDK_PATH/include
