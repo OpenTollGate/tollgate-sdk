@@ -202,16 +202,24 @@ runs:
         make defconfig
 
         echo "Finished `make defconfig`"
-        echo "ls -la"
-        ls -la
-        echo "ls package/"
-        ls package/
-        echo "ls package/feeds"
-        ls package/feeds
-        echo "ls package/feeds/custom"
-        ls package/feeds/custom
-        echo "ls package/feeds/custom/golang"
-        ls package/feeds/custom/golang
+        echo "=== SDK Structure ==="
+        ls -la "${SDK_PATH}"
+
+        echo "=== Feed Packages ==="
+        ls -la "${SDK_PATH}/package/feeds"
+
+        echo "=== Custom Packages ==="
+        ls -la "${SDK_PATH}/package/feeds/custom"
+
+        echo "=== Golang Package Files ==="
+        ls -la "${SDK_PATH}/package/feeds/custom/golang"
+        ls -la "${SDK_PATH}/package/feeds/custom/golang/golang"
+
+        echo "=== Golang Makefile ==="
+        cat "${SDK_PATH}/package/feeds/custom/golang/golang/Makefile"
+
+        echo "=== SDK Config ==="
+        grep -i "golang" "${SDK_PATH}/.config"
 
         echo "cat .config | grep golang"
         cat .config | grep "golang"
