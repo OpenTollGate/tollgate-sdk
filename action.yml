@@ -329,6 +329,52 @@ runs:
         # Try to compile with the feed path
         make package/feeds/relay/tollgate-module-relay-go/compile V=sc
 
+        # Find the built binary in the build directory
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
+        echo "Searching for the built binary (tollgate-relay):"
+        find "${BUILD_DIR_PREFIX}" -name "tollgate-relay" -type f -executable | sort
+
+        # Get the specific build directory for this package
+        PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "tollgate-module-relay-go-*" -type d | head -n 1)
+        if [ -n "$PACKAGE_BUILD_DIR" ]; then
+          echo "Package build directory: $PACKAGE_BUILD_DIR"
+          echo "Listing contents of build directory:"
+          ls -la "$PACKAGE_BUILD_DIR"
+
+          # Check if binary exists
+          if [ -f "$PACKAGE_BUILD_DIR/tollgate-relay" ]; then
+            echo "Binary found at: $PACKAGE_BUILD_DIR/tollgate-relay"
+            echo "binary_path=$PACKAGE_BUILD_DIR/tollgate-relay" >> $GITHUB_OUTPUT
+            echo "BINARY_PATH=$PACKAGE_BUILD_DIR/tollgate-relay" >> $GITHUB_ENV
+          else
+            echo "Binary not found in expected location!"
+            # Search recursively through the build directory
+            find "$PACKAGE_BUILD_DIR" -name "tollgate-relay" -type f -executable
+          fi
+        else
+          echo "Could not find package build directory!"
+        fi
+
+        # Also check the .go_work directory which might contain the compiled binary
+        GO_WORK_DIR=$(find "${BUILD_DIR_PREFIX}" -path "*/.go_work/build/bin/linux_arm64" -type d | head -n 1)
+        if [ -n "$GO_WORK_DIR" ]; then
+          echo "Go work binary directory: $GO_WORK_DIR"
+          ls -la "$GO_WORK_DIR"
+        fi
+
+        # Inspect the IPK file to see where the binary is supposed to be installed
+        echo "Inspecting IPK file contents:"
+        if [ -n "$PACKAGE_FULLPATH" ]; then
+          mkdir -p /tmp/ipk-inspect
+          cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
+          cd /tmp/ipk-inspect
+          ar x $(basename "$PACKAGE_FULLPATH")
+          tar -xzf data.tar.gz
+          echo "Binary in IPK package:"
+          find . -type f -executable
+          cd -
+        fi
+
         # If that doesn't work, try a direct path
         # You might need to find out the actual path where it's installed
         find "${SDK_PATH}/feeds" -name "tollgate-module-relay-go" -type d
