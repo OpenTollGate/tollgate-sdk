@@ -14,11 +14,16 @@ jobs:
       matrix:
         module: [
           "tollgate-module-relay-go",
-          "tollgate-module-merchant-go",
-          "tollgate-module-valve-go",
-          "tollgate-module-whoami-go",
-          "tollgate-module-updater-go",
-          "tollgate-module-crowsnest-go"
+          #"tollgate-module-merchant-go",
+          #"tollgate-module-valve-go",
+          #"tollgate-module-whoami-go",
+          #"tollgate-module-updater-go",
+          #"tollgate-module-crowsnest-go"
+        ]
+        target: [
+          {model: "gl-ar300m"},
+          {model: "gl-mt3000"},
+          {model: "gl-mt6000"}
         ]
       fail-fast: false
 
@@ -32,10 +37,12 @@ jobs:
         with:
           packageName: ${{ matrix.module }}
           makeFilePath: ${{ github.workspace }}/Makefile
+          model: ${{ matrix.target.model }}
 
       - name: Debug Package Path
         run: |
           echo "Package Path: ${{ steps.build.outputs.package_path }}"
+          ls -l 
           ls -l "${{ steps.build.outputs.package_path }}"
 
       - name: Upload Package to Blossom
