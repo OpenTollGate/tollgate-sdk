@@ -39,20 +39,20 @@ jobs:
           makeFilePath: ${{ github.workspace }}/Makefile
           model: ${{ matrix.target.model }}
 
-      #- name: Debug Package Path
-      #  run: |
-      #    echo "Package Path: ${{ steps.build.outputs.package_path }}"
-      #    ls -l 
-      #    ls -l "${{ steps.build.outputs.package_path }}"
-      #    echo "=== Feed Contents ==="
-      #    ls -l package/feeds/custom/
-      #    echo "=== Package Makefile Exists? ==="
-      #    test -f "package/feeds/custom/${{ inputs.packageName }}/Makefile" && echo "Makefile found" || echo "MAKEFILE MISSING"
+      - name: Debug Package Path
+        run: |
+          echo "Package Path: ${{ steps.build.outputs.package_path }}"
+          ls -l 
+          ls -l "${{ steps.build.outputs.package_path }}"
+          echo "=== Feed Contents ==="
+          ls -l package/feeds/custom/
+          echo "=== Package Makefile Exists? ==="
+          test -f "package/feeds/custom/${{ inputs.packageName }}/Makefile" && echo "Makefile found" || echo "MAKEFILE MISSING"
 
-      #- name: Upload Package to Blossom
-      #  id: upload_package
-      #  uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
-      #  with:
-      #    host: "https://blossom.swissdash.site"
-      #    filePath: ${{ steps.build.outputs.package_path }}
-      #    nostrPrivateKey: ${{ secrets.NSEC }}
+      - name: Upload Package to Blossom
+        id: upload_package
+        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ steps.build.outputs.package_path }}
+          nostrPrivateKey: ${{ secrets.NSEC }}
