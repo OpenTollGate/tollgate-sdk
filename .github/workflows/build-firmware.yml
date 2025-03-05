@@ -21,9 +21,9 @@ jobs:
           #"tollgate-module-crowsnest-go"
         ]
         target: [
-          #{model: "gl-ar300m"},
-          {model: "gl-mt3000"} #,
-          #{model: "gl-mt6000"}
+          {model: "gl-ar300m"},
+          {model: "gl-mt3000"},
+          {model: "gl-mt6000"}
         ]
       fail-fast: false
 
