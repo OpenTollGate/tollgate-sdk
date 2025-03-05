@@ -302,6 +302,20 @@ runs:
         # Enable the relay module in the config
         echo "CONFIG_PACKAGE_tollgate-module-relay-go=y" >> .config
 
+        # Debug the package structure
+        echo "Debugging package structure:"
+        echo "Contents of feed directory:"
+        ls -la "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go"
+
+        echo "Contents of build directory:"
+        ls -la "${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/tollgate-module-relay-go-1.4d7e96f/" || echo "Build directory doesn't exist"
+
+        echo "Checking Makefile content:"
+        cat "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go/Makefile"
+
+        echo "Checking if src directory exists:"
+        ls -la "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go/src" || echo "src directory doesn't exist"
+
         # Try to compile with the feed path
         make package/feeds/relay/tollgate-module-relay-go/compile V=sc
 
