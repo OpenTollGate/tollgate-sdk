@@ -329,6 +329,9 @@ runs:
         # Try to compile with the feed path
         make package/feeds/relay/tollgate-module-relay-go/compile V=sc
 
+        echo "NOTE: Error messages about '.go_work/build/src/...' not being found are expected and can be ignored"
+        echo "      These occur because we're using a custom build process that bypasses OpenWrt's default Go workspace."
+
         # Find the built binary in the build directory
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
         echo "Searching for the built binary (tollgate-relay):"
