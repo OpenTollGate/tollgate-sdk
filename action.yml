@@ -316,6 +316,16 @@ runs:
         echo "Checking if src directory exists:"
         ls -la "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go/src" || echo "src directory doesn't exist"
 
+        # Add these to your debug step
+        echo "Complete file listing in build directory:"
+        find "${PKG_BUILD_DIR}" -type f -name "*.go" | sort
+
+        echo "Go environment:"
+        GO_CMD go env
+
+        echo "go.mod contents:"
+        cat "${PKG_BUILD_DIR}/go.mod"
+
         # Try to compile with the feed path
         make package/feeds/relay/tollgate-module-relay-go/compile V=sc
 
