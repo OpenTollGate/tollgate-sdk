@@ -171,6 +171,7 @@ runs:
       MODEL: ${{ inputs.model }}
       PLATFORM: ${{ env.PLATFORM }}
       SUBTARGET: ${{ env.SUBTARGET }}
+      PACKAGE_NAME: ${{ inputs.packageName }}
     uses: nick-fields/retry@v2
     with:
       continue_on_error: 'false'
@@ -191,14 +192,6 @@ runs:
 
         # Set up correct package directory structure
         echo "Setting up golang and required include files..."
-
-        # 1. Copy the include files first
-        # mkdir -p "${SDK_PATH}/include"
-        # cp "${{ github.action_path }}/lang/golang/golang-build.sh" "${SDK_PATH}/include/"
-        # cp "${{ github.action_path }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/include/"
-        # cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
-        # cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/include/"
-        # cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/include/"
 
         # 2. Create a proper package directory structure
         mkdir -p "${SDK_PATH}/package/lang/golang"
@@ -292,67 +285,75 @@ runs:
         cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
         # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
 
-        # Update the relay feed specifically
-        ./scripts/feeds update relay
-        ./scripts/feeds install -a -p relay
+        # Get the feed name from package name (extract the part after last dash before -go)
+        FEED_NAME=$(echo "$MODULE" | sed -E 's/tollgate-module-(.+)-go/\1/')
+        echo "Using feed name: $FEED_NAME for module: $MODULE"
 
-        # Check if the relay module is available
-        ./scripts/feeds list -r | grep tollgate-module-relay-go
+        # Update the module feed specifically (using the appropriate name)
+        ./scripts/feeds update $FEED_NAME
+        ./scripts/feeds install -a -p $FEED_NAME
 
-        # Enable the relay module in the config
-        echo "CONFIG_PACKAGE_tollgate-module-relay-go=y" >> .config
+        # Check if the module is available
+        ./scripts/feeds list -r | grep $MODULE
+
+        # Enable the module in the config
+        echo "CONFIG_PACKAGE_$MODULE=y" >> .config
 
         # Debug the package structure
         echo "Debugging package structure:"
         echo "Contents of feed directory:"
-        ls -la "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go"
+        ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE" || echo "Feed directory doesn't exist"
 
         echo "Contents of build directory:"
-        ls -la "${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/tollgate-module-relay-go-1.4d7e96f/" || echo "Build directory doesn't exist"
+        BUILD_DIR_PATTERN="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/$MODULE-*"
+        ls -la $BUILD_DIR_PATTERN || echo "Build directory doesn't exist"
 
         echo "Checking Makefile content:"
-        cat "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go/Makefile"
+        cat "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile" || echo "Makefile not found"
 
         echo "Checking if src directory exists:"
-        ls -la "${SDK_PATH}/feeds/relay/package/tollgate-module-relay-go/src" || echo "src directory doesn't exist"
+        ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/src" || echo "src directory doesn't exist"
 
         # Add these to your debug step
         echo "Complete file listing in build directory:"
-        find "${PKG_BUILD_DIR}" -type f -name "*.go" | sort
+        find "${PKG_BUILD_DIR}" -type f -name "*.go" | sort || echo "No Go files found"
 
         echo "Go environment:"
-        GO_CMD go env
+        go env || echo "Go not available"
 
         echo "go.mod contents:"
-        cat "${PKG_BUILD_DIR}/go.mod"
+        cat "${PKG_BUILD_DIR}/go.mod" || echo "go.mod not found"
+
+        # Extract binary name from the module name (replace "tollgate-module-" with "tollgate-")
+        BINARY_NAME=$(echo "$MODULE" | sed 's/tollgate-module-/tollgate-/')
 
         # Try to compile with the feed path
-        make package/feeds/relay/tollgate-module-relay-go/compile V=sc
+        make package/feeds/$FEED_NAME/$MODULE/compile V=sc
 
         echo "NOTE: Error messages about '.go_work/build/src/...' not being found are expected and can be ignored"
         echo "      These occur because we're using a custom build process that bypasses OpenWrt's default Go workspace."
 
         # Find the built binary in the build directory
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
-        echo "Searching for the built binary (tollgate-relay):"
-        find "${BUILD_DIR_PREFIX}" -name "tollgate-relay" -type f -executable | sort
+        echo "Searching for the built binary ($BINARY_NAME):"
+        find "${BUILD_DIR_PREFIX}" -name "$BINARY_NAME" -type f -executable | sort
 
         # Get the specific build directory for this package
-        PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "tollgate-module-relay-go-*" -type d | head -n 1)
+        PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
         if [ -n "$PACKAGE_BUILD_DIR" ]; then
           echo "Package build directory: $PACKAGE_BUILD_DIR"
           echo "Listing contents of build directory:"
           ls -la "$PACKAGE_BUILD_DIR"
 
           # Check if binary exists
-          if [ -f "$PACKAGE_BUILD_DIR/tollgate-relay" ]; then
-            echo "Binary found at: $PACKAGE_BUILD_DIR/tollgate-relay"
-            echo "binary_path=$PACKAGE_BUILD_DIR/tollgate-relay" >> $GITHUB_OUTPUT
-            echo "BINARY_PATH=$PACKAGE_BUILD_DIR/tollgate-relay" >> $GITHUB_ENV
+          if [ -f "$PACKAGE_BUILD_DIR/$BINARY_NAME" ]; then
+            echo "Binary found at: $PACKAGE_BUILD_DIR/$BINARY_NAME"
+            echo "binary_path=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_OUTPUT
+            echo "BINARY_PATH=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_ENV
           else
             echo "Binary not found in expected location!"
             # Search recursively through the build directory
-            find "$PACKAGE_BUILD_DIR" -name "tollgate-relay" -type f -executable
+            find "$PACKAGE_BUILD_DIR" -name "$BINARY_NAME" -type f -executable
           fi
         else
           echo "Could not find package build directory!"
@@ -380,16 +381,16 @@ runs:
 
         # If that doesn't work, try a direct path
         # You might need to find out the actual path where it's installed
-        find "${SDK_PATH}/feeds" -name "tollgate-module-relay-go" -type d
+        find "${SDK_PATH}/feeds" -name "$MODULE" -type d
 
         # Debug output to see what was built
         echo "Contents of bin/packages directory:"
         find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
         # Find the package more robustly
-        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "${{ inputs.packageName }}*.ipk" | head -n 1)
+        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -type f -name "$MODULE*.ipk" | head -n 1)
         if [ -z "$PACKAGE_FULLPATH" ]; then
-          echo "ERROR: No package file found matching ${{ inputs.packageName }}*.ipk"
+          echo "ERROR: No package file found matching $MODULE*.ipk"
           exit 1
         else
           echo "Found package: $PACKAGE_FULLPATH"
