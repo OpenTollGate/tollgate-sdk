@@ -108,6 +108,13 @@ runs:
         fi
         echo "Extracting SDK..."
         tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
+        cat "${SDKDIR}/"logs/feeds/*/package/tollgate-module-*-go/dump.txt
+        # Find all dump.txt files
+        find "${SDKDIR}" -name "dump.txt" | while read logfile; do
+          echo "=== Dump file: $logfile ==="
+          cat "$logfile" || echo "Failed to read dump file"
+          echo
+        done
         # echo "Copying golang.mk to SDK include directory..."
         # cp "${SCRIPT_DIR}"/golang.mk "${SDK_PATH}"/include/golang.mk
         echo "Creating ${SDK_PATH}/include"
