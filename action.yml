@@ -37,7 +37,6 @@ runs:
     shell: bash
     run: |
       sudo apt-get update
-      # sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev opkg-utils python3-pip
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
 
   - name: Validate opkg utilities
