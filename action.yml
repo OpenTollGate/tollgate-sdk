@@ -162,6 +162,18 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+  - name: Debug Makefile dump files
+    shell: bash
+    run: |
+      SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
+      
+      echo "Examining package dump files..."
+      find "${SDK_PATH}/logs/feeds" -name "dump.txt" | while read dumpfile; do
+        echo "==== DUMP FILE: $dumpfile ===="
+        cat "$dumpfile"
+        echo ""
+      done
+
   - name: Build firmware
     id: build_firmware
     env:
