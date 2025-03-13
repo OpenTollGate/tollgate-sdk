@@ -233,7 +233,7 @@ runs:
         echo "Setting up golang and required include files..."
 
         # 2. Copy makefiles and custom golang packages
-	mkdir -p "${SDK_PATH}/include"
+        mkdir -p "${SDK_PATH}/include"
         mkdir -p "${SDK_PATH}/package/lang/golang"
         cp -r "${{ github.action_path }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
         mkdir -p "${SDK_PATH}/package/lang/golang/files"
