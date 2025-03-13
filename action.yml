@@ -232,27 +232,63 @@ runs:
         # 1. Set up correct package directory structure
         echo "Setting up golang and required include files..."
 
+        # 1. Create package framework first
+        mkdir -p "${SDK_PATH}/package/golang"
+        cp -r "${{ github.action_path }}/lang/golang" "${SDK_PATH}/package/golang"
+
+        # 2. Set up feed structure
+        FEED_DIR="${SDK_PATH}/feeds/packages/lang/golang"
+        mkdir -p "${FEED_DIR}"
+        cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${FEED_DIR}/"
+        cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${FEED_DIR}/"
+
+        # 3. Link to system includes
+        ln -sf "${FEED_DIR}/golang-package.mk" "${SDK_PATH}/include/golang-package.mk"
+        ln -sf "${FEED_DIR}/golang-values.mk" "${SDK_PATH}/include/golang-values.mk"
+
         # 2. Copy makefiles and custom golang packages
-        mkdir -p "${SDK_PATH}/include"
-        mkdir -p "${SDK_PATH}/package/lang/golang"
-        cp -r "${{ github.action_path }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
-        mkdir -p "${SDK_PATH}/package/lang/golang/files"
-        cp -r "${{ github.action_path }}/lang/golang/golang/files"/* "${SDK_PATH}/package/lang/golang/files/" || true
+        #mkdir -p "${SDK_PATH}/include"
+        #mkdir -p "${SDK_PATH}/package/lang/golang"
+        #cp -r "${{ github.action_path }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
+        #mkdir -p "${SDK_PATH}/package/lang/golang/files"
+        #cp -r "${{ github.action_path }}/lang/golang/golang/files"/* "${SDK_PATH}/package/lang/golang/files/" || true
 
         # 3. Copy golang makefiles
-        cp "${{ github.action_path }}/lang/golang/golang-build.sh" "${SDK_PATH}/package/lang/"
-        cp "${{ github.action_path }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/package/lang/"
-        cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
-        cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/"
-        cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/"
-        cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/"
-        chmod 644 "${SDK_PATH}/include/golang-package.mk"
+        #cp "${{ github.action_path }}/lang/golang/golang-build.sh" "${SDK_PATH}/package/lang/"
+        #cp "${{ github.action_path }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/package/lang/"
+        #cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
+        #cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/"
+        #cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/"
+        #cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/"
+        #chmod 644 "${SDK_PATH}/include/golang-package.mk"
 
         # Verify the file exists in both locations
-        ls -la "${SDK_PATH}/include/golang-package.mk" "${SDK_PATH}/package/lang/golang-package.mk"
+        #ls -la "${SDK_PATH}/include/golang-package.mk" "${SDK_PATH}/package/lang/golang-package.mk"
 
         # Copy golang.mk to include directory
         cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+
+        # In the Build firmware step, before make defconfig
+        mkdir -p "${SDK_PATH}/feeds/packages/lang/golang"
+        cp -r "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/feeds/packages/lang/golang/golang-package.mk"
+        cp -r "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/feeds/packages/lang/golang/golang-values.mk"
+
+        # Verify core OpenWRT paths
+        echo "==================== SDK DIRECTORY STRUCTURE ===================="
+        ls -la ${SDK_PATH}/feeds/packages/lang/golang/
+        ls -la ${SDK_PATH}/include/
+
+        # After copying files, add these checks
+        if [ ! -f "${SDK_PATH}/include/golang-package.mk" ]; then
+          echo "ERROR: golang-package.mk missing in include dir!"
+          find "${SDK_PATH}" -name "golang-package.mk"
+          exit 1
+        fi
+
+        # Verify Makefile can access the includes
+        echo "Testing Makefile includes..."
+        make -C ${SDK_PATH} printvars V=sc | grep INCLUDE_DIR
+        make -C ${SDK_PATH} printvars V=sc | grep TOPDIR
 
         # 4. Go to SDK directory
         cd "${SDK_PATH}"
