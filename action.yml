@@ -539,18 +539,7 @@ runs:
         ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
         mkdir -p "$ARCH_DIR"
         
-        # 17. Find the final package path
-        PACKAGE_FULLPATH=$(find "$ARCH_DIR" -name "$MODULE*.ipk" | head -n 1)
-
-        # After package compilation
-        PACKAGE_FULLPATH="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}/relay/${MODULE}_*.ipk"
-
-        # Wait for file to be written
-        for i in {1..5}; do
-          [ -f "$PACKAGE_FULLPATH" ] && break
-          echo "Waiting for package file... Attempt $i"
-          sleep 2
-        done
+        FOUND_IPK=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
 
         # Verify existence
         if [ ! -f "$PACKAGE_FULLPATH" ]; then
