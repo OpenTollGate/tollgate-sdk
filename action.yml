@@ -246,6 +246,7 @@ runs:
         cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/"
         cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/"
         cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/"
+        chmod 644 "${SDK_PATH}/include/golang-package.mk"
 
         # Verify the file exists in both locations
         ls -la "${SDK_PATH}/include/golang-package.mk" "${SDK_PATH}/package/lang/golang-package.mk"
