@@ -27,28 +27,11 @@ runs:
     with:
       python-version: "3.12"
 
-  - name: Install opkg utilities
-    shell: bash
-    run: |
-      # Install opkg-make-index utility for proper package creation
-      if [ ! -f "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" ]; then
-        echo "Installing opkg-make-index..."
-        mkdir -p "${SDK_PATH}/staging_dir/host/bin"
-        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-        chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-      fi
-
   - name: Install dependencies
     shell: bash
     run: |
       sudo apt-get update
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
-
-  - name: Validate opkg utilities
-    shell: bash
-    run: |
-      which opkg-make-index
-      opkg-make-index --version
 
   - name: Install Go
     shell: bash
@@ -172,6 +155,29 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+  - name: Install opkg utilities
+    shell: bash
+    env:
+      PLATFORM: ${{ env.PLATFORM }}
+      SUBTARGET: ${{ env.SUBTARGET }}
+    run: |
+      VERSION=23.05.3
+      SDKDIR=/tmp/openwrt-sdk
+      SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
+      
+      # Install opkg-make-index utility for proper package creation
+      if [ ! -f "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" ]; then
+        echo "Installing opkg-make-index..."
+        mkdir -p "${SDK_PATH}/staging_dir/host/bin"
+        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
+        chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
+      fi
+
+  - name: Validate opkg utilities
+    shell: bash
+    run: |
+      which opkg-make-index
+      opkg-make-index --version
 
   - name: Debug Makefile dump files
     shell: bash
