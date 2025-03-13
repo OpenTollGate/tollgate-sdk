@@ -32,6 +32,7 @@ runs:
     run: |
       sudo apt-get update
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev
+      pip3 install opkg-python
 
   - name: Install Go
     shell: bash
@@ -487,7 +488,9 @@ runs:
         
         # 16. Generate package index
         cd "${SDK_PATH}"
-        ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
+        TARGET_ARCH="$(grep 'CONFIG_ARCH=' ${SDK_PATH}/.config | cut -d= -f2 | tr -d '\"')"
+        ARCH_DIR="${SDK_PATH}/bin/packages/${TARGET_ARCH}"
+        # ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
         mkdir -p "$ARCH_DIR"
         "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "${ARCH_DIR}/Packages"
         gzip -9c "${ARCH_DIR}/Packages" > "${ARCH_DIR}/Packages.gz"
