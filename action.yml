@@ -389,7 +389,6 @@ runs:
         echo "Contents of bin/packages directory:"
         find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
-
         # 11. Check the module's Makefile
         MAKEFILE_PATH="${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile"
         if [ -f "$MAKEFILE_PATH" ]; then
@@ -399,30 +398,11 @@ runs:
         else
           echo "ERROR: Makefile not found at $MAKEFILE_PATH"
           echo "Creating Makefile from template..."
-          
+
           # Create directory if it doesn't exist
           mkdir -p "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE"
-          
-              # Create debian-binary
-              echo "2.0" > "$WORKDIR/debian-binary"
-              
-              # Create tar archives
-              cd "$WORKDIR/control"
-              tar -czf "$WORKDIR/control.tar.gz" .
-              cd "$WORKDIR/data"
-              tar -czf "$WORKDIR/data.tar.gz" .
-              cd "$WORKDIR"
-              
-              # Create ar archive (IPK file)
-              IPK_FILE="$ARCH_DIR/${MODULE}_1.0-1_${PLATFORM}_${SUBTARGET}.ipk"
-              ar -rc "$IPK_FILE" debian-binary control.tar.gz data.tar.gz
-              
-              echo "Created IPK file at: $IPK_FILE"
-            else
-              echo "ERROR: Binary not found!"
-              exit 1
-            fi
-          fi
+          echo "Makefile not found in $MAKEFILE_PATH"
+          exit 1
         fi
         
         # 16. Generate package index
