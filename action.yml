@@ -29,9 +29,13 @@ runs:
 
   - name: Install opkg utilities
     run: |
-      sudo apt-get update
-      sudo apt-get install -y opkg-utils
-      ls -la ${SDK_PATH}/staging_dir/host/bin/opkg-make-index
+      # Install opkg-make-index utility for proper package creation
+      if [ ! -f "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" ]; then
+        echo "Installing opkg-make-index..."
+        mkdir -p "${SDK_PATH}/staging_dir/host/bin"
+        wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
+        chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
+      fi
 
   - name: Install dependencies
     shell: bash
@@ -160,13 +164,6 @@ runs:
             ;;
         esac
 
-        # Install opkg-make-index utility for proper package creation
-        if [ ! -f "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" ]; then
-          echo "Installing opkg-make-index..."
-          mkdir -p "${SDK_PATH}/staging_dir/host/bin"
-          wget https://raw.githubusercontent.com/shr-project/opkg-utils/master/opkg-make-index -O "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-          chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-        fi
 
         echo "Copying ${{github.action_path}}/feeds.conf to "${SDK_PATH}"/feeds.conf"
         cp ${{github.action_path}}/feeds.conf "${SDK_PATH}"/feeds.conf
