@@ -381,17 +381,17 @@ runs:
         fi
 
         # Inspect the IPK file to see where the binary is supposed to be installed
-        echo "Inspecting IPK file contents:"
-        if [ -n "$PACKAGE_FULLPATH" ]; then
-          mkdir -p /tmp/ipk-inspect
-          cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
-          cd /tmp/ipk-inspect
-          ar x $(basename "$PACKAGE_FULLPATH")
-          tar -xzf data.tar.gz
-          echo "Binary in IPK package:"
-          find . -type f -executable
-          cd -
-        fi
+        # echo "Inspecting IPK file contents:"
+        # if [ -n "$PACKAGE_FULLPATH" ]; then
+        #  mkdir -p /tmp/ipk-inspect
+        #  cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
+        #  cd /tmp/ipk-inspect
+        #  ar x $(basename "$PACKAGE_FULLPATH")
+        #  tar -xzf data.tar.gz
+        #  echo "Binary in IPK package:"
+        #  find . -type f -executable
+        #  cd -
+        #fi
 
         # If that doesn't work, try a direct path
         # You might need to find out the actual path where it's installed
@@ -419,14 +419,34 @@ runs:
         
         # 16. Generate package index
         cd "${SDK_PATH}"
-        "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "$ARCH_DIR/Packages"
-        gzip -9c "$ARCH_DIR/Packages" > "$ARCH_DIR/Packages.gz"
+        ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
+        mkdir -p "$ARCH_DIR"
+        "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "${ARCH_DIR}/Packages"
+        gzip -9c "${ARCH_DIR}/Packages" > "${ARCH_DIR}/Packages.gz"
 
         ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
         mkdir -p "$ARCH_DIR"
         
         # 17. Find the final package path
         PACKAGE_FULLPATH=$(find "$ARCH_DIR" -name "$MODULE*.ipk" | head -n 1)
+
+        # After package compilation
+        PACKAGE_FULLPATH="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}/relay/${MODULE}_*.ipk"
+
+        # Wait for file to be written
+        for i in {1..5}; do
+          [ -f "$PACKAGE_FULLPATH" ] && break
+          echo "Waiting for package file... Attempt $i"
+          sleep 2
+        done
+
+        # Verify existence
+        if [ ! -f "$PACKAGE_FULLPATH" ]; then
+          echo "ERROR: Package never appeared at $PACKAGE_FULLPATH"
+          find "${SDK_PATH}/bin/packages" -name "*.ipk"
+          exit 1
+        fi
+
         # Validate IPK structure
         echo "Validating IPK file format..."
         if [ -f "$PACKAGE_FULLPATH" ]; then
@@ -446,6 +466,17 @@ runs:
             echo "ERROR: Invalid IPK format! Missing data.tar.gz"
             exit 1
           fi
+
+          # Verify binary in IPK
+          mkdir -p /tmp/ipk-inspect
+          cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
+          cd /tmp/ipk-inspect
+          ar x $(basename "$PACKAGE_FULLPATH")
+          tar -tzf data.tar.gz | grep 'usr/bin/tollgate-relay' || {
+            echo "ERROR: Binary missing from package!"
+            exit 1
+          }
+
           echo "IPK validation successful!"
           echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
           echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
@@ -453,3 +484,4 @@ runs:
           echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
           exit 1
         fi
+
