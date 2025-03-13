@@ -27,16 +27,11 @@ runs:
     with:
       python-version: "3.12"
 
-  - name: Ensure pip is available
-    run: |
-      python3 -m ensurepip --default-pip
-      pip3 install --upgrade pip
-
   - name: Install dependencies
     shell: bash
     run: |
       sudo apt-get update
-      sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev
+      sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
       pip3 install opkg-python
 
   - name: Install Go
