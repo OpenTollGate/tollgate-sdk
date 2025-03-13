@@ -318,7 +318,6 @@ runs:
         echo "Checking Makefile content:"
         cat "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile" || echo "Makefile not found"
 
-        # Add this block:
         # Find the build directory and pin the problematic package version
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
         PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
@@ -326,8 +325,14 @@ runs:
           echo "Package build directory: $PACKAGE_BUILD_DIR"
           echo "Pinning bytedance/sonic package version to fix compilation issues..."
           cd "$PACKAGE_BUILD_DIR" && \
-          go mod edit -require github.com/bytedance/sonic@v1.12.10 && \
-          go mod tidy
+          go mod edit -require github.com/bytedance/sonic@v1.9.1 && \
+          go mod tidy && \
+          # Verify the pinning worked
+          go list -m github.com/bytedance/sonic && \
+          # Create vendor directory
+          go mod vendor && \
+          echo "Checking if sonic is properly vendored:"
+          find vendor -path "*/bytedance/sonic*" || echo "Failed to vendor sonic package"
           echo "go.mod after pinning:"
           cat "$PACKAGE_BUILD_DIR/go.mod"
         fi
