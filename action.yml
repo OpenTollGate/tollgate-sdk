@@ -31,8 +31,14 @@ runs:
     shell: bash
     run: |
       sudo apt-get update
+      sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev opkg-utils python3-pip
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
-      pip3 install opkg-python
+
+  - name: Validate opkg utilities
+    shell: bash  # <-- Add this line
+    run: |
+      which opkg-make-index
+      opkg-make-index --version
 
   - name: Install Go
     shell: bash
