@@ -175,9 +175,35 @@ runs:
 
   - name: Validate opkg utilities
     shell: bash
+    env:
+      PLATFORM: ${{ env.PLATFORM }}
+      SUBTARGET: ${{ env.SUBTARGET }}
     run: |
-      which opkg-make-index
-      opkg-make-index --version
+      VERSION=23.05.3
+      SDKDIR=/tmp/openwrt-sdk
+      SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
+
+      # Check with full path since it's not in PATH
+      echo "Checking if opkg-make-index exists:"
+      ls -la "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" || echo "File not found"
+
+      # Check if it can be executed
+      echo "Checking if opkg-make-index is executable:"
+      if [ -x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" ]; then
+        echo "opkg-make-index is executable"
+        # Execute with full path
+        "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" --version || echo "Error running opkg-make-index"
+      else
+        echo "opkg-make-index is not executable"
+        # Make it executable if needed
+        chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
+        "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" --version || echo "Error running opkg-make-index"
+      fi
+
+      # Add to PATH for future steps if needed
+      echo "Adding opkg-make-index to PATH"
+      export PATH="${SDK_PATH}/staging_dir/host/bin:$PATH"
+      echo "PATH=$PATH" >> $GITHUB_ENV
 
   - name: Debug Makefile dump files
     shell: bash
