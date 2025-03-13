@@ -162,17 +162,43 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+
   - name: Debug Makefile dump files
     shell: bash
+    env:
+      PLATFORM: ${{ env.PLATFORM }}
+      SUBTARGET: ${{ env.SUBTARGET }}
     run: |
+      VERSION=23.05.3
+      SDKDIR=/tmp/openwrt-sdk
       SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-      
+
+      echo "Looking for SDK path: ${SDK_PATH}"
+      if [ ! -d "${SDK_PATH}" ]; then
+        echo "SDK directory does not exist!"
+        ls -la "${SDKDIR}" || echo "SDKDIR doesn't exist"
+        exit 1
+      fi
+
       echo "Examining package dump files..."
-      find "${SDK_PATH}/logs/feeds" -name "dump.txt" | while read dumpfile; do
+      if [ ! -d "${SDK_PATH}/logs" ]; then
+        echo "Logs directory does not exist yet - this is normal if feeds haven't been processed"
+        mkdir -p "${SDK_PATH}/logs/feeds"
+        exit 0
+      fi
+
+      # Look for dump files more flexibly
+      find "${SDK_PATH}" -name "dump.txt" | while read dumpfile; do
         echo "==== DUMP FILE: $dumpfile ===="
         cat "$dumpfile"
         echo ""
       done
+
+      # If no dump files found, this is expected at this stage
+      if [ ! "$(find "${SDK_PATH}" -name "dump.txt")" ]; then
+        echo "No dump files found - this is expected if feeds haven't been processed yet"
+      fi
+      
 
   - name: Build firmware
     id: build_firmware
