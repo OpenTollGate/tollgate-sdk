@@ -429,31 +429,35 @@ runs:
         cd "${SDK_PATH}"
         "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "$ARCH_DIR/Packages"
         gzip -9c "$ARCH_DIR/Packages" > "$ARCH_DIR/Packages.gz"
+
+        ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
+        mkdir -p "$ARCH_DIR"
         
         # 17. Find the final package path
         PACKAGE_FULLPATH=$(find "$ARCH_DIR" -name "$MODULE*.ipk" | head -n 1)
-        if [ -z "$PACKAGE_FULLPATH" ]; then
-          echo "ERROR: No package file found matching $MODULE*.ipk"
-          exit 1
-        else
-          echo "Found package: $PACKAGE_FULLPATH"
-          
+        # Validate IPK structure
+        echo "Validating IPK file format..."
+        if [ -f "$PACKAGE_FULLPATH" ]; then
           # Validate IPK structure
           echo "Validating IPK file format..."
           if ! ar t "$PACKAGE_FULLPATH" | grep -q "debian-binary"; then
             echo "ERROR: Invalid IPK format! Missing debian-binary"
             exit 1
           fi
+
           if ! ar t "$PACKAGE_FULLPATH" | grep -q "control.tar.gz"; then
             echo "ERROR: Invalid IPK format! Missing control.tar.gz"
             exit 1
           fi
+
           if ! ar t "$PACKAGE_FULLPATH" | grep -q "data.tar.gz"; then
             echo "ERROR: Invalid IPK format! Missing data.tar.gz"
             exit 1
           fi
-          
           echo "IPK validation successful!"
           echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
           echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+        else
+          echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
+          exit 1
         fi
