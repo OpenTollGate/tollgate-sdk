@@ -333,8 +333,8 @@ runs:
           go mod vendor && \
           echo "Checking if sonic is properly vendored:"
           find vendor -path "*/bytedance/sonic*" || echo "Failed to vendor sonic package"
-          echo "go.mod after pinning:"
-          cat "$PACKAGE_BUILD_DIR/go.mod"
+          # echo "go.mod after pinning:"
+          # cat "$PACKAGE_BUILD_DIR/go.mod"
         fi
 
         echo "Checking if src directory exists:"
