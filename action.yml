@@ -233,6 +233,7 @@ runs:
         echo "Setting up golang and required include files..."
 
         # 2. Copy makefiles and custom golang packages
+	mkdir -p "${SDK_PATH}/include"
         mkdir -p "${SDK_PATH}/package/lang/golang"
         cp -r "${{ github.action_path }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
         mkdir -p "${SDK_PATH}/package/lang/golang/files"
@@ -241,9 +242,13 @@ runs:
         # 3. Copy golang makefiles
         cp "${{ github.action_path }}/lang/golang/golang-build.sh" "${SDK_PATH}/package/lang/"
         cp "${{ github.action_path }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/package/lang/"
+        cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
         cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/"
         cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/"
         cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/"
+
+        # Verify the file exists in both locations
+        ls -la "${SDK_PATH}/include/golang-package.mk" "${SDK_PATH}/package/lang/golang-package.mk"
 
         # Copy golang.mk to include directory
         cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
