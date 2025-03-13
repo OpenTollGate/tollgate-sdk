@@ -325,8 +325,8 @@ runs:
           echo "Package build directory: $PACKAGE_BUILD_DIR"
           echo "Pinning bytedance/sonic package version to fix compilation issues..."
           cd "$PACKAGE_BUILD_DIR" && \
-          go mod edit -replace github.com/bytedance/sonic=github.com/bytedance/sonic@v1.9.1 && \
-          go mod edit -require github.com/bytedance/sonic@v1.9.1 && \
+          go mod edit -replace github.com/bytedance/sonic=github.com/bytedance/sonic@1.12.10 && \
+          go mod edit -require github.com/bytedance/sonic@1.12.10 && \
           go mod tidy && \
           # Verify the pinning worked
           go list -m github.com/bytedance/sonic && \
