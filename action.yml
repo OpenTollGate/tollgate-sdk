@@ -32,7 +32,8 @@ runs:
     run: |
       sudo apt-get update
       sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
-      pip3 install python-opkg opkg-utils
+      sudo apt-get install -y python3-dev python3-setuptools debhelper dh-python # opkg build dependencies
+      # pip3 install python-opkg opkg-utils
 
   - name: Install Go
     shell: bash
@@ -169,15 +170,14 @@ runs:
       # Create opkg-utils directory within the SDK
       OPKG_UTILS_DIR="${SDK_PATH}/staging_dir/host/bin/opkg-utils"
       mkdir -p "${SDK_PATH}/staging_dir/host/bin"
-    
+
       # Clone the entire opkg-utils repository 
       echo "Cloning opkg-utils repository..."
       git clone https://github.com/c03rad0r/opkg-utils.git "${OPKG_UTILS_DIR}"
+      cd opkg-utils
+      make
+      sudo make install
     
-      # Create a symlink to opkg-make-index in bin directory
-      ln -sf "${OPKG_UTILS_DIR}/opkg-make-index" "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-      chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-
   - name: Validate opkg utilities
     shell: bash
     env:
