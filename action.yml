@@ -157,6 +157,7 @@ runs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+
   - name: Install opkg utilities
     shell: bash
     env:
@@ -171,10 +172,14 @@ runs:
       OPKG_UTILS_DIR="${SDK_PATH}/staging_dir/host/bin/opkg-utils"
       mkdir -p "${SDK_PATH}/staging_dir/host/bin"
 
-      # Clone the entire opkg-utils repository 
+      # Clone the repository into the specified directory
       echo "Cloning opkg-utils repository..."
       git clone https://github.com/c03rad0r/opkg-utils.git "${OPKG_UTILS_DIR}"
-      cd opkg-utils
+
+      # Change to the cloned directory using full path
+      cd "${OPKG_UTILS_DIR}"
+
+      # Build and install
       make
       sudo make install
     
