@@ -400,7 +400,7 @@ runs:
         cat "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile" || echo "Makefile not found"
 
         # TODO: this stuff is specific to the relay module
-	# TODO: Put it in a different step and only run when packaging the relay module?
+        # TODO: Put it in a different step and only run when packaging the relay module?
         # Find the build directory and pin the problematic package version
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
         PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
