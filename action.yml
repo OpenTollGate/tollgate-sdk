@@ -525,6 +525,22 @@ runs:
         
         #FOUND_IPK=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
 
+        # Find the IPK file and store its path in PACKAGE_FULLPATH
+        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
+        echo "Found package at: $PACKAGE_FULLPATH"
+
+        # Save to GitHub outputs and environment
+        if [ -n "$PACKAGE_FULLPATH" ]; then
+          echo "Package found at: $PACKAGE_FULLPATH"
+          echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
+          echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+        else
+          echo "ERROR: Could not find package file matching ${MODULE}_*.ipk"
+          echo "Available packages:"
+          find "${SDK_PATH}/bin/packages" -name "*.ipk"
+          exit 1
+        fi
+
         # Verify existence
         #if [ ! -f "$PACKAGE_FULLPATH" ]; then
         #  echo "ERROR: Package never appeared at $PACKAGE_FULLPATH"
