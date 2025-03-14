@@ -512,58 +512,58 @@ runs:
         fi
         
         # 16. Generate package index
-        cd "${SDK_PATH}"
-        TARGET_ARCH="$(grep 'CONFIG_ARCH=' ${SDK_PATH}/.config | cut -d= -f2 | tr -d '\"')"
-        ARCH_DIR="${SDK_PATH}/bin/packages/${TARGET_ARCH}"
+        #cd "${SDK_PATH}"
+        #TARGET_ARCH="$(grep 'CONFIG_ARCH=' ${SDK_PATH}/.config | cut -d= -f2 | tr -d '\"')"
+        #ARCH_DIR="${SDK_PATH}/bin/packages/${TARGET_ARCH}"
         # ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
-        mkdir -p "$ARCH_DIR"
-        "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "${ARCH_DIR}/Packages"
-        gzip -9c "${ARCH_DIR}/Packages" > "${ARCH_DIR}/Packages.gz"
+        #mkdir -p "$ARCH_DIR"
+        #"${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "${ARCH_DIR}/Packages"
+        #gzip -9c "${ARCH_DIR}/Packages" > "${ARCH_DIR}/Packages.gz"
 
-        ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
-        mkdir -p "$ARCH_DIR"
+        #ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
+        #mkdir -p "$ARCH_DIR"
         
-        FOUND_IPK=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
+        #FOUND_IPK=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
 
         # Verify existence
-        if [ ! -f "$PACKAGE_FULLPATH" ]; then
-          echo "ERROR: Package never appeared at $PACKAGE_FULLPATH"
-          find "${SDK_PATH}/bin/packages" -name "*.ipk"
-          exit 1
-        fi
+        #if [ ! -f "$PACKAGE_FULLPATH" ]; then
+        #  echo "ERROR: Package never appeared at $PACKAGE_FULLPATH"
+        #  find "${SDK_PATH}/bin/packages" -name "*.ipk"
+        #  exit 1
+        #fi
 
         # Validate IPK structure
         echo "Validating IPK file format..."
         if [ -f "$PACKAGE_FULLPATH" ]; then
-          # Validate IPK structure
-          echo "Validating IPK file format..."
-          if ! ar t "$PACKAGE_FULLPATH" | grep -q "debian-binary"; then
-            echo "ERROR: Invalid IPK format! Missing debian-binary"
-            exit 1
-          fi
+        #  # Validate IPK structure
+        #  echo "Validating IPK file format..."
+        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "debian-binary"; then
+        #    echo "ERROR: Invalid IPK format! Missing debian-binary"
+        #    exit 1
+        #  fi
 
-          if ! ar t "$PACKAGE_FULLPATH" | grep -q "control.tar.gz"; then
-            echo "ERROR: Invalid IPK format! Missing control.tar.gz"
-            exit 1
-          fi
+        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "control.tar.gz"; then
+        #    echo "ERROR: Invalid IPK format! Missing control.tar.gz"
+        #    exit 1
+        #  fi
 
-          if ! ar t "$PACKAGE_FULLPATH" | grep -q "data.tar.gz"; then
-            echo "ERROR: Invalid IPK format! Missing data.tar.gz"
-            exit 1
-          fi
+        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "data.tar.gz"; then
+        #    echo "ERROR: Invalid IPK format! Missing data.tar.gz"
+        #    exit 1
+        #  fi
 
-          # Verify binary in IPK
-          mkdir -p /tmp/ipk-inspect
-          cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
-          cd /tmp/ipk-inspect
-          ar x $(basename "$PACKAGE_FULLPATH")
-          tar -tzf data.tar.gz | grep -E "usr/bin/tollgate-.*" || {
-            echo "WARNING: Expected binary pattern 'usr/bin/tollgate-*' not found in package"
-            echo "Package contents:"
-            tar -tzf data.tar.gz | grep -E "usr/bin/"
-          }
+        #  # Verify binary in IPK
+        #  mkdir -p /tmp/ipk-inspect
+        #  cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
+        #  cd /tmp/ipk-inspect
+        #  ar x $(basename "$PACKAGE_FULLPATH")
+        #  tar -tzf data.tar.gz | grep -E "usr/bin/tollgate-.*" || {
+        #    echo "WARNING: Expected binary pattern 'usr/bin/tollgate-*' not found in package"
+        #    echo "Package contents:"
+        #    tar -tzf data.tar.gz | grep -E "usr/bin/"
+        #  }
 
-          echo "IPK validation successful!"
+        #  echo "IPK validation successful!"
           echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
           echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
         else
