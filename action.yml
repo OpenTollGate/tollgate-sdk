@@ -182,36 +182,12 @@ runs:
       # Build and install
       make
       sudo make install
-    
-  - name: Validate opkg utilities
+
+  - name: Verify opkg-build
     shell: bash
-    env:
-      PLATFORM: ${{ env.PLATFORM }}
-      SUBTARGET: ${{ env.SUBTARGET }}
     run: |
-      VERSION=23.05.3
-      SDKDIR=/tmp/openwrt-sdk
-      SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-
-      # Check if opkg-make-index exists
-      echo "Checking if opkg-make-index exists:"
-      ls -la "${SDK_PATH}/staging_dir/host/bin/opkg-make-index" || echo "File not found"
-
-      # Check if opkg.py exists in the repository
-      echo "Checking if opkg.py exists in the repository:"
-      ls -la "${SDK_PATH}/staging_dir/host/bin/opkg-utils/opkg.py" || echo "opkg.py not found"
-
-      # Make sure it's executable
-      chmod +x "${SDK_PATH}/staging_dir/host/bin/opkg-make-index"
-      
-      # Try running it with --version (might not support this option)
-      #echo "Testing opkg-make-index:"
-      #"${SDK_PATH}/staging_dir/host/bin/opkg-make-index" --help 2>&1 | head -n 5 || echo "Error running opkg-make-index help"
-
-      # Add to PATH for future steps
-      echo "Adding opkg-make-index to PATH"
-      export PATH="${SDK_PATH}/staging_dir/host/bin:$PATH"
-      echo "PATH=$PATH" >> $GITHUB_ENV
+      which opkg-build || echo "opkg-build not found!"
+      opkg-build --version || true
 
   - name: Debug Makefile dump files
     shell: bash
