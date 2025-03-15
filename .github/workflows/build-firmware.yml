@@ -71,5 +71,5 @@ jobs:
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
-          filePath: ${{ steps.build_firmware.outputs.package_path }}
+          filePath: ${{ env.PACKAGE_FULLPATH }}
           nostrPrivateKey: ${{ secrets.NSEC }}
