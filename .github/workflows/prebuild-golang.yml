@@ -5,7 +5,8 @@ on:
     - cron: '0 0 * * 0'  # Weekly rebuild on Sunday
   push:
     paths:
-      - 'lang/golang/**'  # Only trigger on golang source changes
+      - 'lang/golang/**'
+      - '.github/workflows/prebuild-golang.yml'
 
 jobs:
   prebuild:
