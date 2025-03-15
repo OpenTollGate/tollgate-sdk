@@ -345,8 +345,13 @@ runs:
     run: |
       cd "${SDK_PATH}"
       
-      # Find the build directory and pin the problematic package version
-      BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
+      # Determine the correct build directory prefix based on platform
+      if [ "${{ inputs.platform }}" == "ath79" ]; then
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-mips_24kc_musl"
+      else
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
+      fi
+      
       PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "${{ env.MODULE }}-*" -type d | head -n 1)
       if [ -n "$PACKAGE_BUILD_DIR" ]; then
         echo "Package build directory: $PACKAGE_BUILD_DIR"
@@ -381,8 +386,13 @@ runs:
     run: |
       cd "${SDK_PATH}"
       
-      # Find the built binary in the build directory
-      BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
+      # Determine the correct build directory prefix based on platform
+      if [ "${{ inputs.platform }}" == "ath79" ]; then
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-mips_24kc_musl"
+      else
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
+      fi
+      
       echo "Searching for the built binary (${{ env.BINARY_NAME }}):"
       find "${BUILD_DIR_PREFIX}" -name "${{ env.BINARY_NAME }}" -type f -executable | sort
 
