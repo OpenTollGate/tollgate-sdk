@@ -49,12 +49,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           continue-on-error: true
 
-      - name: Build Firmware
-        id: build_firmware
+      - name: Checkout SDK
         uses: actions/checkout@v4
         with:
           repository: OpenTollGate/tollgate-sdk
           path: .
+
+      - name: Build Firmware
+        id: build_firmware
+        uses: ./
         with:
           model: ${{ matrix.target.model }}
           platform: ${{ matrix.target.platform }}
