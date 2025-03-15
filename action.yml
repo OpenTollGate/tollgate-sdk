@@ -27,6 +27,9 @@ inputs:
   golang_hash:
     description: 'Expected SHA256 hash of the prebuilt golang package (optional)'
     required: false
+  module:
+    description: 'Name of the module to build (e.g., tollgate-module-relay-go)'
+    required: true
 outputs:
   package_path:
     description: 'Path to the built package'
@@ -270,6 +273,9 @@ runs:
     shell: bash
     run: |
       cd "${SDK_PATH}"
+      
+      # Set MODULE from input
+      MODULE="${{ inputs.module }}"
       
       # Configure the build
       make defconfig
