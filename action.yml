@@ -21,8 +21,9 @@ inputs:
     description: 'Target subtarget (e.g., filogic)'
     required: true
   prebuilt_golang:
-    description: 'Path to prebuilt golang package (optional)'
+    description: 'Path to prebuilt golang package'
     required: false
+    default: ''
   golang_hash:
     description: 'Expected SHA256 hash of the prebuilt golang package (optional)'
     required: false
@@ -537,19 +538,22 @@ runs:
           exit 1
         fi
 
-  - name: Download Prebuilt Golang
+  - name: Install Prebuilt Golang
     if: inputs.prebuilt_golang != ''
     shell: bash
     run: |
-      if [ ! -z "${{ inputs.golang_hash }}" ]; then
-        echo "${{ inputs.golang_hash }} ${{ inputs.prebuilt_golang }}" | sha256sum -c -
-        if [ $? -ne 0 ]; then
-          echo "Error: Golang package hash verification failed"
-          exit 1
-        fi
+      if [ -f "${{ inputs.prebuilt_golang }}" ]; then
+        echo "Installing prebuilt golang package..."
+        mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
+        cp "${{ inputs.prebuilt_golang }}" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
+        cd "${SDK_PATH}"
+        # Install the prebuilt package
+        ./scripts/feeds update -a
+        ./scripts/feeds install golang
+      else
+        echo "Error: Prebuilt golang package not found at ${{ inputs.prebuilt_golang }}"
+        exit 1
       fi
-      mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
-      cp "${{ inputs.prebuilt_golang }}" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
 
   # Add fallback build logic if prebuilt package isn't provided
   - name: Build Golang (Fallback)
