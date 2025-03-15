@@ -32,7 +32,7 @@ jobs:
       - name: Upload Test File to Blossom
         id: upload_test
         continue-on-error: true
-        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
+        uses: c03rad0r/cli-blossom-uploader-go@main
         with:
           host: "https://blossom.swissdash.site"
           filePath: test.txt
@@ -40,14 +40,14 @@ jobs:
 
       - name: Report Test File URL
         run: |
-          echo "Test file uploaded to: ${{ steps.upload_test.outputs.blossomUrl }}"
-          echo "Test file hash: ${{ steps.upload_test.outputs.blossomHash }}"
+          echo "Test file uploaded to: ${{ steps.upload_test.outputs.url }}"
+          echo "Test file hash: ${{ steps.upload_test.outputs.hash }}"
           
           # Compare the hashes
-          if [ "${{ env.ORIGINAL_HASH }}" != "${{ steps.upload_test.outputs.blossomHash }}" ]; then
+          if [ "${{ env.ORIGINAL_HASH }}" != "${{ steps.upload_test.outputs.hash }}" ]; then
             echo "WARNING: Hashes don't match!"
             echo "Original hash: ${{ env.ORIGINAL_HASH }}"
-            echo "Blossom hash:  ${{ steps.upload_test.outputs.blossomHash }}"
+            echo "Blossom hash:  ${{ steps.upload_test.outputs.hash }}"
             echo "This indicates the file was modified during upload."
           else
             echo "Hashes match! File integrity preserved during upload."
@@ -106,6 +106,11 @@ jobs:
           if [ -n "${{ env.PACKAGE_FULLPATH }}" ]; then
             echo "Package Path: ${{ env.PACKAGE_FULLPATH }}"
             ls -la "${{ env.PACKAGE_FULLPATH }}"
+            
+            # Calculate and store the hash for later comparison
+            PACKAGE_HASH=$(sha256sum "${{ env.PACKAGE_FULLPATH }}" | cut -d' ' -f1)
+            echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
+            echo "Original package hash: $PACKAGE_HASH"
           else
             echo "Warning: No package path found in environment"
           fi
@@ -133,39 +138,54 @@ jobs:
             echo "File does not exist!"
           fi
 
-      - name: Prepare IPK for Blossom Upload
-        run: |
-          # Create a zip containing the IPK
-          zip package.zip "${{ env.PACKAGE_FULLPATH }}"
-          echo "ZIPPED_PACKAGE=package.zip" >> $GITHUB_ENV
-
-      - name: Upload Zipped Package to Blossom
+      - name: Upload Package to Blossom
         id: upload_package
-        continue-on-error: true
-        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
+        uses: c03rad0r/cli-blossom-uploader-go@main
         with:
           host: "https://blossom.swissdash.site"
-          # filePath: ${{ env.ZIPPED_PACKAGE }} # for debugging
-          filePath: ${{ env.PACKAGE_FULLPATH }} # the actual ipk file - download still corrupted
+          filePath: ${{ env.PACKAGE_FULLPATH }}
           nostrPrivateKey: ${{ secrets.NSEC }}
 
-      # - name: Publish Package NIP-94 Metadata
-      #   id: publish_package
-      #   uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
-      #   with:
-      #     relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
-      #     url: ${{ steps.upload_package.outputs.url }}
-      #     mimeType: application/zip
-      #     fileHash: ${{ steps.upload_package.outputs.hash }}
-      #     originalHash: ${{ steps.upload_package.outputs.hash }}
-      #     content: "TollGate Module Package: ${{ env.PACKAGE_NAME }}"
-      #     nsec: ${{ secrets.NSEC }}
-      #     size: ${{ env.ZIP_SIZE }}
-      #     architecture: ${{ matrix.target || 'all' }}
+      - name: Report Package Upload Results
+        run: |
+          if [ "${{ steps.upload_package.outputs.success }}" == "true" ]; then
+            echo "✅ Package uploaded successfully!"
+            echo "URL: ${{ steps.upload_package.outputs.url }}"
+            echo "Blossom hash: ${{ steps.upload_package.outputs.hash }}"
+            echo "Original hash: ${{ env.PACKAGE_HASH }}"
+            
+            # Compare hashes
+            if [ "${{ steps.upload_package.outputs.hash }}" == "${{ env.PACKAGE_HASH }}" ]; then
+              echo "✅ Hash verification successful!"
+            else
+              echo "⚠️ Hash mismatch! File may have been modified during upload."
+              echo "Original: ${{ env.PACKAGE_HASH }}"
+              echo "Reported: ${{ steps.upload_package.outputs.hash }}"
+            fi
+          else
+            echo "❌ Package upload failed!"
+            echo "Error: ${{ steps.upload_package.outputs.error }}"
+          fi
 
-      # - name: Verify Package NIP-94 Event
-      #   id: verify_package
-      #   uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
-      #   with:
-      #     eventId: ${{ steps.publish_package.outputs.eventId }}
-      #     relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+      - name: Download Uploaded Package
+        if: steps.upload_package.outputs.success == 'true'
+        run: |
+          # Download the file we just uploaded
+          curl -L "${{ steps.upload_package.outputs.url }}" -o downloaded-package.ipk
+          
+          # Calculate hash of downloaded file
+          DOWNLOADED_HASH=$(sha256sum downloaded-package.ipk | cut -d' ' -f1)
+          echo "DOWNLOADED_HASH=$DOWNLOADED_HASH" >> $GITHUB_ENV
+          
+          echo "Downloaded package with hash: $DOWNLOADED_HASH"
+          
+          # Compare original and downloaded file hashes
+          if [ "${{ env.PACKAGE_HASH }}" == "$DOWNLOADED_HASH" ]; then
+            echo "✅ End-to-end verification successful!"
+            echo "The package was uploaded and downloaded without any modifications."
+          else
+            echo "❌ End-to-end verification failed!"
+            echo "Original hash: ${{ env.PACKAGE_HASH }}"
+            echo "Downloaded hash: $DOWNLOADED_HASH"
+            echo "This indicates the file was modified during upload or download."
+          fi
