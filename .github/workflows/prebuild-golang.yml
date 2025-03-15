@@ -1,8 +1,8 @@
 name: Prebuild Golang
 on:
-  workflow_dispatch:  # Allow manual triggering for testing
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly rebuild on Sunday
+    - cron: '0 0 * * 0'
   push:
     paths:
       - 'package/lang/golang/**'
@@ -18,13 +18,13 @@ jobs:
           {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"},
           {model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
         ]
-      fail-fast: false  # Continue with other targets if one fails
+      fail-fast: false
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history and tags
+          fetch-depth: 0
 
       - name: Setup python 3.12
         uses: actions/setup-python@v4
@@ -133,3 +133,12 @@ jobs:
           name: golang-${{ matrix.target.model }}-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
           path: ${{ env.GOLANG_IPK }}
           retention-days: 30
+
+      - name: Verify Upload
+        run: |
+          if [ -z "$GOLANG_IPK" ] || [ ! -f "$GOLANG_IPK" ]; then
+            echo "Error: Golang package not found at $GOLANG_IPK"
+            exit 1
+          fi
+          echo "Golang package hash: $GOLANG_HASH"
+          echo "Successfully built and uploaded golang package for ${{ matrix.target.model }}"

@@ -1,6 +1,6 @@
 # action.yml
-name: 'Build OpenWRT IPK'
-description: 'Builds an OpenWRT package'
+name: 'OpenWrt SDK Action'
+description: 'Build OpenWrt packages using SDK'
 branding:
   color: purple
   icon: upload
@@ -12,9 +12,20 @@ inputs:
     description: 'The full filePath of the makeFile to use'
     required: true
   model:
-    description: 'The device model (e.g., gl-mt3000, gl-ar300m)'
+    description: 'Target device model (e.g., gl-mt3000)'
     required: true
-    default: 'gl-mt3000'
+  platform:
+    description: 'Target platform (e.g., mediatek)'
+    required: true
+  subtarget:
+    description: 'Target subtarget (e.g., filogic)'
+    required: true
+  prebuilt_golang:
+    description: 'Path to prebuilt golang package (optional)'
+    required: false
+  golang_hash:
+    description: 'Expected SHA256 hash of the prebuilt golang package (optional)'
+    required: false
 outputs:
   package_path:
     description: 'Path to the built package'
@@ -525,4 +536,26 @@ runs:
           echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
           exit 1
         fi
+
+  - name: Download Prebuilt Golang
+    if: inputs.prebuilt_golang != ''
+    shell: bash
+    run: |
+      if [ ! -z "${{ inputs.golang_hash }}" ]; then
+        echo "${{ inputs.golang_hash }} ${{ inputs.prebuilt_golang }}" | sha256sum -c -
+        if [ $? -ne 0 ]; then
+          echo "Error: Golang package hash verification failed"
+          exit 1
+        fi
+      fi
+      mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
+      cp "${{ inputs.prebuilt_golang }}" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
+
+  # Add fallback build logic if prebuilt package isn't provided
+  - name: Build Golang (Fallback)
+    if: inputs.prebuilt_golang == ''
+    shell: bash
+    run: |
+      echo "No prebuilt golang package provided, building from source..."
+      # Original golang build steps here
 

@@ -13,6 +13,7 @@ on:
 
 jobs:
   build:
+    needs: [prebuild-golang]
     # Only run if the triggering prebuild workflow succeeded or if this was triggered directly
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     runs-on: ubuntu-latest
@@ -35,7 +36,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Download Prebuilt Golang
+        uses: actions/download-artifact@v4
+        with:
+          name: golang-${{ matrix.target.model }}-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
+          path: prebuilt/
 
       - name: Build OpenWRT Package
         uses: ./ # Uses the local action
@@ -44,6 +51,10 @@ jobs:
           packageName: ${{ matrix.module }}
           makeFilePath: ${{ github.workspace }}/Makefile
           model: ${{ matrix.target.model }}
+          platform: ${{ matrix.target.platform }}
+          subtarget: ${{ matrix.target.subtarget }}
+          prebuilt_golang: prebuilt/golang*.ipk
+          golang_hash: ${{ needs.prebuild-golang.outputs.golang_hash }}
 
       - name: Debug Package Path
         run: |
