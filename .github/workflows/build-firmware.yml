@@ -74,6 +74,13 @@ jobs:
             echo "Warning: No package path found in environment"
           fi
 
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.target.model }}-${{ matrix.module }}
+          path: ${{ env.PACKAGE_FULLPATH }}
+          retention-days: 5
+
       - name: Check File Before Upload
         run: |
           echo "Checking file before upload to Blossom:"
