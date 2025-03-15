@@ -59,13 +59,11 @@ jobs:
 
       - name: Debug Package Path
         run: |
-          if [ -n "${{ steps.build_firmware.outputs.package_path }}" ]; then
-            echo "Package Path: ${{ steps.build_firmware.outputs.package_path }}"
-            ls -la "${{ steps.build_firmware.outputs.package_path }}"
+          if [ -n "${{ env.PACKAGE_FULLPATH }}" ]; then
+            echo "Package Path: ${{ env.PACKAGE_FULLPATH }}"
+            ls -la "${{ env.PACKAGE_FULLPATH }}"
           else
-            echo "Warning: No package path output from build step"
-            echo "Available outputs:"
-            echo "${{ toJSON(steps.build_firmware.outputs) }}"
+            echo "Warning: No package path found in environment"
           fi
 
       - name: Upload Package to Blossom
