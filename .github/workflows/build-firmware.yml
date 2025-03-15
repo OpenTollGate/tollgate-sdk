@@ -74,6 +74,33 @@ jobs:
             echo "Warning: No package path found in environment"
           fi
 
+      - name: Validate IPK Structure
+        run: |
+          echo "Validating IPK file structure..."
+          if [ -f "${{ env.PACKAGE_FULLPATH }}" ]; then
+            # Check if it's a valid archive
+            if ! ar t "${{ env.PACKAGE_FULLPATH }}" &>/dev/null; then
+              echo "ERROR: Not a valid ar archive"
+              exit 1
+            fi
+            
+            # Check for required components
+            if ! ar t "${{ env.PACKAGE_FULLPATH }}" | grep -q "data.tar.gz"; then
+              echo "ERROR: Missing data.tar.gz in IPK"
+              exit 1
+            fi
+            
+            if ! ar t "${{ env.PACKAGE_FULLPATH }}" | grep -q "control.tar.gz"; then
+              echo "ERROR: Missing control.tar.gz in IPK"
+              exit 1
+            fi
+            
+            echo "IPK structure validation passed"
+          else
+            echo "ERROR: Package file not found"
+            exit 1
+          fi
+
       - name: Upload Package to Blossom
         id: upload_package
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
