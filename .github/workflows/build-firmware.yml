@@ -46,6 +46,20 @@ jobs:
           name: golang-${{ matrix.target.model }}-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
           path: prebuilt/
 
+      - name: Build Golang
+        env:
+          SDK_PATH: ${{ env.SDK_PATH }}
+          PLATFORM: ${{ matrix.target.platform }}
+          SUBTARGET: ${{ matrix.target.subtarget }}
+        run: |
+          cd "${SDK_PATH}"
+          
+          # Configure and build golang
+          make defconfig
+          echo "CONFIG_PACKAGE_golang=y" >> .config
+          # Build the package directly from package directory, not feeds
+          make package/golang/compile V=s
+
       - name: Build Firmware
         uses: ./
         with:
