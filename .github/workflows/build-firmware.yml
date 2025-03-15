@@ -48,6 +48,7 @@ jobs:
           path: prebuilt/
 
       - name: Build Firmware
+        id: build_firmware
         uses: ./
         with:
           model: ${{ matrix.target.model }}
@@ -58,14 +59,19 @@ jobs:
 
       - name: Debug Package Path
         run: |
-          echo "Package Path: ${{ steps.build.outputs.package_path }}"
-          ls -l 
-          ls -l "${{ steps.build.outputs.package_path }}"
+          if [ -n "${{ steps.build_firmware.outputs.package_path }}" ]; then
+            echo "Package Path: ${{ steps.build_firmware.outputs.package_path }}"
+            ls -la "${{ steps.build_firmware.outputs.package_path }}"
+          else
+            echo "Warning: No package path output from build step"
+            echo "Available outputs:"
+            echo "${{ toJSON(steps.build_firmware.outputs) }}"
+          fi
 
       - name: Upload Package to Blossom
         id: upload_package
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
-          filePath: ${{ steps.build.outputs.package_path }}
+          filePath: ${{ steps.build_firmware.outputs.package_path }}
           nostrPrivateKey: ${{ secrets.NSEC }}

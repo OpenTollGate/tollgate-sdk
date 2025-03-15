@@ -455,12 +455,3 @@ runs:
         echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
         exit 1
       fi
-
-  # Add fallback build logic if prebuilt package isn't provided
-  - name: Build Golang (Fallback)
-    if: inputs.prebuilt_golang == ''
-    shell: bash
-    run: |
-      echo "No prebuilt golang package provided, building from source..."
-      # Original golang build steps here
-
