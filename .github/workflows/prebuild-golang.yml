@@ -59,7 +59,6 @@ jobs:
           SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
           DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
           SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-          # Set the environment variable for this and subsequent steps
           echo "SDK_PATH=${SDK_PATH}" >> $GITHUB_ENV
           
           mkdir -p "${SDKDIR}"
@@ -74,38 +73,33 @@ jobs:
           mkdir -p "${SDK_PATH}/bin/packages/$PLATFORM"
 
       - name: Setup Golang Build Environment
-        env:
-          SDK_PATH: ${{ env.SDK_PATH }}
         run: |
           REPO_ROOT=$PWD
           
           # Copy feeds.conf
-          cp feeds.conf "${SDK_PATH}"/feeds.conf
-          cd "${SDK_PATH}"
+          cp feeds.conf "${{ env.SDK_PATH }}"/feeds.conf
+          cd "${{ env.SDK_PATH }}"
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
           # Create package framework
-          mkdir -p "${SDK_PATH}/package/golang"
-          cp -r "${REPO_ROOT}/lang/golang" "${SDK_PATH}/package/golang"
+          mkdir -p "${{ env.SDK_PATH }}/package/golang"
+          cp -r "${REPO_ROOT}/lang/golang" "${{ env.SDK_PATH }}/package/golang"
           
           # Set up feed structure
-          FEED_DIR="${SDK_PATH}/feeds/packages/lang/golang"
+          FEED_DIR="${{ env.SDK_PATH }}/feeds/packages/lang/golang"
           mkdir -p "${FEED_DIR}"
           cp "${REPO_ROOT}/lang/golang/golang-package.mk" "${FEED_DIR}/"
           cp "${REPO_ROOT}/lang/golang/golang-values.mk" "${FEED_DIR}/"
           
           # Link to system includes
-          ln -sf "${FEED_DIR}/golang-package.mk" "${SDK_PATH}/include/golang-package.mk"
-          ln -sf "${FEED_DIR}/golang-values.mk" "${SDK_PATH}/include/golang-values.mk"
+          ln -sf "${FEED_DIR}/golang-package.mk" "${{ env.SDK_PATH }}/include/golang-package.mk"
+          ln -sf "${FEED_DIR}/golang-values.mk" "${{ env.SDK_PATH }}/include/golang-values.mk"
           
           # Copy golang.mk
-          cp "${REPO_ROOT}/golang.mk" "${SDK_PATH}/include/golang.mk"
+          cp "${REPO_ROOT}/golang.mk" "${{ env.SDK_PATH }}/include/golang.mk"
 
       - name: Build Golang
-        env:
-          PLATFORM: ${{ matrix.target.platform }}
-          SUBTARGET: ${{ matrix.target.subtarget }}
         run: |
           cd "${{ env.SDK_PATH }}"
           
