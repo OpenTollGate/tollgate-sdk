@@ -35,8 +35,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq git libncurses5-dev libncursesw5-dev pigz binutils-dev python3-pip
-          sudo apt-get install -y python3-dev python3-setuptools debhelper dh-python
-          sudo apt-get install -y python3-distutils
+          sudo apt-get install -y python3-dev debhelper dh-python
+          # Install setuptools via pip instead of distutils
+          python3 -m pip install --upgrade setuptools
 
       - name: Debug directory structure
         run: |
