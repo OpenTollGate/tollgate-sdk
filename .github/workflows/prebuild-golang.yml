@@ -97,7 +97,7 @@ jobs:
           ln -sf "${FEED_DIR}/golang-values.mk" "${SDK_PATH}/include/golang-values.mk"
           
           # Copy golang.mk
-          cp golang.mk "${SDK_PATH}/include/golang.mk"
+          cp "${REPO_ROOT}/golang.mk" "${SDK_PATH}/include/golang.mk"
 
       - name: Build Golang
         env:
