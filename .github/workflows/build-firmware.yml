@@ -148,7 +148,7 @@ jobs:
 
       - name: Publish Package NIP-94 Metadata
         id: publish_package
-        uses: OpenTollGate/nostr-publish-file-metadata-action@main
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python/publish@main
         with:
           url: ${{ steps.upload_package.outputs.url }}
           sha256: ${{ env.ZIP_HASH }}
