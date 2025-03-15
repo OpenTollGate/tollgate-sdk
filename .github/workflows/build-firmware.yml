@@ -36,7 +36,7 @@ jobs:
         with:
           host: "https://blossom.swissdash.site"
           filePath: test.txt
-          nostrPrivateKey: ${{ secrets.NSEC }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
 
       - name: Report Test File URL
         run: |
@@ -144,7 +144,7 @@ jobs:
         with:
           host: "https://blossom.swissdash.site"
           filePath: ${{ env.PACKAGE_FULLPATH }}
-          nostrPrivateKey: ${{ secrets.NSEC }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
 
       - name: Report Package Upload Results
         run: |
