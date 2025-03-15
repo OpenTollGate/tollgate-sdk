@@ -132,44 +132,16 @@ jobs:
             echo "File does not exist!"
           fi
 
-      - name: Upload Package to Blossom
+      - name: Prepare IPK for Blossom Upload
+        run: |
+          # Create a zip containing the IPK
+          zip package.zip "${{ env.PACKAGE_FULLPATH }}"
+          echo "ZIPPED_PACKAGE=package.zip" >> $GITHUB_ENV
+
+      - name: Upload Zipped Package to Blossom
         id: upload_package
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
-          filePath: ${{ env.PACKAGE_FULLPATH }}
+          filePath: ${{ env.ZIPPED_PACKAGE }}
           nostrPrivateKey: ${{ secrets.NSEC }}
-
-      - name: Test Blossom Upload with Simple File
-        run: |
-          # Create a simple test file
-          echo "This is a test file" > test.txt
-          # Calculate its hash
-          ORIGINAL_HASH=$(sha256sum test.txt | cut -d' ' -f1)
-          echo "Original hash: $ORIGINAL_HASH"
-          
-          # Save the hash for later comparison
-          echo "ORIGINAL_HASH=$ORIGINAL_HASH" >> $GITHUB_ENV
-
-      - name: Upload Test File to Blossom
-        id: upload_test
-        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
-        with:
-          host: "https://blossom.swissdash.site"
-          filePath: test.txt
-          nostrPrivateKey: ${{ secrets.NSEC }}
-
-      - name: Report Test File URL
-        run: |
-          echo "Test file uploaded to: ${{ steps.upload_test.outputs.blossomUrl }}"
-          echo "Test file hash: ${{ steps.upload_test.outputs.blossomHash }}"
-          
-          # Compare the hashes
-          if [ "${{ env.ORIGINAL_HASH }}" != "${{ steps.upload_test.outputs.blossomHash }}" ]; then
-            echo "WARNING: Hashes don't match!"
-            echo "Original hash: ${{ env.ORIGINAL_HASH }}"
-            echo "Blossom hash:  ${{ steps.upload_test.outputs.blossomHash }}"
-            echo "This indicates the file was modified during upload."
-          else
-            echo "Hashes match! File integrity preserved during upload."
-          fi
