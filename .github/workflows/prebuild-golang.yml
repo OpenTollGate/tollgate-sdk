@@ -130,6 +130,6 @@ jobs:
       - name: Upload Prebuilt Golang
         uses: actions/upload-artifact@v4
         with:
-          name: golang-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
+          name: golang-${{ matrix.target.model }}-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
           path: ${{ env.GOLANG_IPK }}
           retention-days: 30
