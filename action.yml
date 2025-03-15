@@ -294,7 +294,12 @@ runs:
       ./scripts/feeds install -a -p $FEED_NAME
 
       # Check if the module is available
-      ./scripts/feeds list -r | grep $MODULE
+      if ! ./scripts/feeds list -r | grep "$MODULE"; then
+          echo "Error: Module $MODULE not found in feeds"
+          echo "Available modules:"
+          ./scripts/feeds list -r
+          exit 1
+      fi
 
       # 10. Enable the module in the config
       echo "CONFIG_PACKAGE_$MODULE=y" >> .config
