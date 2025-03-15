@@ -113,7 +113,7 @@ jobs:
           echo "GOLANG_IPK=$GOLANG_IPK" >> $GITHUB_ENV
 
       - name: Upload Prebuilt Golang
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: golang-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
           path: ${{ env.GOLANG_IPK }}
