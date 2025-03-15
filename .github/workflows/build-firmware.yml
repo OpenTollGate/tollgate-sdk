@@ -2,6 +2,10 @@
 name: Build Firmware
 
 on:
+  workflow_run:
+    workflows: ["Prebuild Golang"]
+    types:
+      - completed
   push:
     branches:
       - '*'
@@ -9,6 +13,8 @@ on:
 
 jobs:
   build:
+    # Only run if the triggering prebuild workflow succeeded or if this was triggered directly
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
