@@ -59,7 +59,8 @@ jobs:
           SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
           DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
           SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-          echo "SDK_PATH=${SDK_PATH}" >> $GITHUB_ENV
+          # Make SDK_PATH available to other steps
+          echo "SDK_PATH=${SDK_PATH}" >> "$GITHUB_ENV"
           
           mkdir -p "${SDKDIR}"
           echo "Downloading SDK..."
@@ -100,10 +101,18 @@ jobs:
           cp "${REPO_ROOT}/golang.mk" "${{ env.SDK_PATH }}/include/golang.mk"
 
       - name: Build Golang
+        env:
+          PLATFORM: ${{ matrix.target.platform }}
+          SUBTARGET: ${{ matrix.target.subtarget }}
+          # Explicitly set SDK_PATH from the environment
+          SDK_PATH: ${{ env.SDK_PATH }}
         run: |
-          cd "${{ env.SDK_PATH }}"
-          
-          # Configure and build golang
+          if [ -z "$SDK_PATH" ]; then
+            echo "Error: SDK_PATH is not set"
+            exit 1
+          fi
+          echo "Using SDK_PATH: $SDK_PATH"
+          cd "$SDK_PATH"
           make defconfig
           echo "CONFIG_PACKAGE_golang=y" >> .config
           make package/golang/compile V=s
