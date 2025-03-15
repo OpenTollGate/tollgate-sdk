@@ -269,11 +269,9 @@ runs:
       fi
         
     # Module specific build steps start here
-  - name: Build module specified in inputs
+  - name: Set up module variables
     shell: bash
     run: |
-      cd "${SDK_PATH}"
-      
       # Set MODULE from input
       MODULE="${{ inputs.module }}"
       if [ -z "$MODULE" ]; then
@@ -288,7 +286,20 @@ runs:
         echo "Error: Could not parse feed name from module: $MODULE"
         exit 1
       fi
-      echo "Using feed name: $FEED_NAME"
+      echo "Using feed name: $FEED_NAME for module: $MODULE"
+      
+      # Extract binary name from the module name
+      BINARY_NAME=$(echo "$MODULE" | sed 's/tollgate-module-/tollgate-/')
+      
+      # Export variables for subsequent steps
+      echo "MODULE=$MODULE" >> $GITHUB_ENV
+      echo "FEED_NAME=$FEED_NAME" >> $GITHUB_ENV
+      echo "BINARY_NAME=$BINARY_NAME" >> $GITHUB_ENV
+
+  - name: Configure build environment
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
       
       # Configure the build
       make defconfig
@@ -296,44 +307,47 @@ runs:
       # Make sure include directory exists and copy golang.mk
       mkdir -p $SDK_PATH/include
       cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-      # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
-
-      # 8. Parse feed name from module name
-      FEED_NAME=$(echo "$MODULE" | sed -E 's/tollgate-module-(.+)-go/\1/')
-      echo "Using feed name: $FEED_NAME for module: $MODULE"
-
-      # 9. Update and install the module feed
-      ./scripts/feeds update $FEED_NAME
-      ./scripts/feeds install -a -p $FEED_NAME
+      
+      # Update and install the module feed
+      ./scripts/feeds update ${{ env.FEED_NAME }}
+      ./scripts/feeds install -a -p ${{ env.FEED_NAME }}
 
       # Check if the module is available
-      if ! ./scripts/feeds list -r | grep "$MODULE"; then
-          echo "Error: Module $MODULE not found in feeds"
+      if ! ./scripts/feeds list -r | grep "${{ env.MODULE }}"; then
+          echo "Error: Module ${{ env.MODULE }} not found in feeds"
           echo "Available modules:"
           ./scripts/feeds list -r
           exit 1
       fi
 
-      # 10. Enable the module in the config
-      echo "CONFIG_PACKAGE_$MODULE=y" >> .config
+      # Enable the module in the config
+      echo "CONFIG_PACKAGE_${{ env.MODULE }}=y" >> .config
 
-      # Debug the package structure
+  - name: Debug package structure
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
       echo "Debugging package structure:"
       echo "Contents of feed directory:"
-      ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE" || echo "Feed directory doesn't exist"
+      ls -la "${SDK_PATH}/feeds/${{ env.FEED_NAME }}/package/${{ env.MODULE }}" || echo "Feed directory doesn't exist"
 
       echo "Contents of build directory:"
-      BUILD_DIR_PATTERN="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/$MODULE-*"
+      BUILD_DIR_PATTERN="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/${{ env.MODULE }}-*"
       ls -la $BUILD_DIR_PATTERN || echo "Build directory doesn't exist"
 
       echo "Checking Makefile content:"
-      cat "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile" || echo "Makefile not found"
+      cat "${SDK_PATH}/feeds/${{ env.FEED_NAME }}/package/${{ env.MODULE }}/Makefile" || echo "Makefile not found"
 
-      # TODO: this stuff is specific to the relay module
-      # TODO: Put it in a different step and only run when packaging the relay module?
+  - name: Apply relay-specific fixes
+    if: inputs.module == 'tollgate-module-relay-go'
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
       # Find the build directory and pin the problematic package version
       BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
-      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
+      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "${{ env.MODULE }}-*" -type d | head -n 1)
       if [ -n "$PACKAGE_BUILD_DIR" ]; then
         echo "Package build directory: $PACKAGE_BUILD_DIR"
         echo "Pinning bytedance/sonic package version to fix compilation issues..."
@@ -351,49 +365,43 @@ runs:
         cat "$PACKAGE_BUILD_DIR/go.mod"
       fi
 
-      echo "Checking if src directory exists:"
-      ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/src" || echo "src directory doesn't exist"
-
-      # Add these to your debug step
-      echo "Complete file listing in build directory:"
-      find "${PKG_BUILD_DIR}" -type f -name "*.go" | sort || echo "No Go files found"
-
-      echo "Go environment:"
-      go env || echo "Go not available"
-
-      echo "go.mod contents:"
-      cat "${PKG_BUILD_DIR}/go.mod" || echo "go.mod not found"
-
-      # Extract binary name from the module name (replace "tollgate-module-" with "tollgate-")
-      BINARY_NAME=$(echo "$MODULE" | sed 's/tollgate-module-/tollgate-/')
-
+  - name: Compile module
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
       # Try to compile with the feed path
-      make package/feeds/$FEED_NAME/$MODULE/compile V=sc
+      make package/feeds/${{ env.FEED_NAME }}/${{ env.MODULE }}/compile V=sc
 
       echo "NOTE: Error messages about '.go_work/build/src/...' not being found are expected and can be ignored"
       echo "      These occur because we're using a custom build process that bypasses OpenWrt's default Go workspace."
 
+  - name: Verify build output
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
       # Find the built binary in the build directory
       BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
-      echo "Searching for the built binary ($BINARY_NAME):"
-      find "${BUILD_DIR_PREFIX}" -name "$BINARY_NAME" -type f -executable | sort
+      echo "Searching for the built binary (${{ env.BINARY_NAME }}):"
+      find "${BUILD_DIR_PREFIX}" -name "${{ env.BINARY_NAME }}" -type f -executable | sort
 
       # Get the specific build directory for this package
-      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
+      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "${{ env.MODULE }}-*" -type d | head -n 1)
       if [ -n "$PACKAGE_BUILD_DIR" ]; then
         echo "Package build directory: $PACKAGE_BUILD_DIR"
         echo "Listing contents of build directory:"
         ls -la "$PACKAGE_BUILD_DIR"
 
         # Check if binary exists
-        if [ -f "$PACKAGE_BUILD_DIR/$BINARY_NAME" ]; then
-          echo "Binary found at: $PACKAGE_BUILD_DIR/$BINARY_NAME"
-          echo "binary_path=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_OUTPUT
-          echo "BINARY_PATH=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_ENV
+        if [ -f "$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" ]; then
+          echo "Binary found at: $PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}"
+          echo "binary_path=$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" >> $GITHUB_OUTPUT
+          echo "BINARY_PATH=$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" >> $GITHUB_ENV
         else
           echo "Binary not found in expected location!"
           # Search recursively through the build directory
-          find "$PACKAGE_BUILD_DIR" -name "$BINARY_NAME" -type f -executable
+          find "$PACKAGE_BUILD_DIR" -name "${{ env.BINARY_NAME }}" -type f -executable
         fi
       else
         echo "Could not find package build directory!"
@@ -406,32 +414,17 @@ runs:
         ls -la "$GO_WORK_DIR"
       fi
 
-      # If that doesn't work, try a direct path
-      # You might need to find out the actual path where it's installed
-      find "${SDK_PATH}/feeds" -name "$MODULE" -type d
-
       # Debug output to see what was built
       echo "Contents of bin/packages directory:"
       find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
-      # 11. Check the module's Makefile
-      MAKEFILE_PATH="${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile"
-      if [ -f "$MAKEFILE_PATH" ]; then
-        echo "Found Makefile for $MODULE at $MAKEFILE_PATH"
-        echo "Checking Makefile content:"
-        cat "$MAKEFILE_PATH"
-      else
-        echo "ERROR: Makefile not found at $MAKEFILE_PATH"
-        echo "Creating Makefile from template..."
-
-        # Create directory if it doesn't exist
-        mkdir -p "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE"
-        echo "Makefile not found in $MAKEFILE_PATH"
-        exit 1
-      fi
+  - name: Validate and export package
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
       
       # Find the IPK file and store its path in PACKAGE_FULLPATH
-      PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
+      PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${{ env.MODULE }}_*.ipk" | head -n 1)
       echo "Found package at: $PACKAGE_FULLPATH"
 
       # Save to GitHub outputs and environment
@@ -440,7 +433,7 @@ runs:
         echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
         echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
       else
-        echo "ERROR: Could not find package file matching ${MODULE}_*.ipk"
+        echo "ERROR: Could not find package file matching ${{ env.MODULE }}_*.ipk"
         echo "Available packages:"
         find "${SDK_PATH}/bin/packages" -name "*.ipk"
         exit 1
