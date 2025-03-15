@@ -146,23 +146,23 @@ jobs:
           filePath: ${{ env.ZIPPED_PACKAGE }}
           nostrPrivateKey: ${{ secrets.NSEC }}
 
-      - name: Publish Package NIP-94 Metadata
-        id: publish_package
-        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
-        with:
-          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
-          url: ${{ steps.upload_package.outputs.url }}
-          mimeType: application/zip
-          fileHash: ${{ steps.upload_package.outputs.hash }}
-          originalHash: ${{ steps.upload_package.outputs.hash }}
-          content: "TollGate Module Package: ${{ env.PACKAGE_NAME }}"
-          nsec: ${{ secrets.NSEC }}
-          size: ${{ env.ZIP_SIZE }}
-          architecture: ${{ matrix.target || 'all' }}
+      # - name: Publish Package NIP-94 Metadata
+      #   id: publish_package
+      #   uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+      #   with:
+      #     relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+      #     url: ${{ steps.upload_package.outputs.url }}
+      #     mimeType: application/zip
+      #     fileHash: ${{ steps.upload_package.outputs.hash }}
+      #     originalHash: ${{ steps.upload_package.outputs.hash }}
+      #     content: "TollGate Module Package: ${{ env.PACKAGE_NAME }}"
+      #     nsec: ${{ secrets.NSEC }}
+      #     size: ${{ env.ZIP_SIZE }}
+      #     architecture: ${{ matrix.target || 'all' }}
 
-      - name: Verify Package NIP-94 Event
-        id: verify_package
-        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
-        with:
-          eventId: ${{ steps.publish_package.outputs.eventId }}
-          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+      # - name: Verify Package NIP-94 Event
+      #   id: verify_package
+      #   uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
+      #   with:
+      #     eventId: ${{ steps.publish_package.outputs.eventId }}
+      #     relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
