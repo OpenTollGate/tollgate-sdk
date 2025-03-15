@@ -1,6 +1,6 @@
 # action.yml
-name: 'Build OpenWRT IPK'
-description: 'Builds an OpenWRT package'
+name: 'OpenWrt SDK Action'
+description: 'Build OpenWrt packages using SDK'
 branding:
   color: purple
   icon: upload
@@ -12,9 +12,24 @@ inputs:
     description: 'The full filePath of the makeFile to use'
     required: true
   model:
-    description: 'The device model (e.g., gl-mt3000, gl-ar300m)'
+    description: 'Target device model (e.g., gl-mt3000)'
     required: true
-    default: 'gl-mt3000'
+  platform:
+    description: 'Target platform (e.g., mediatek)'
+    required: true
+  subtarget:
+    description: 'Target subtarget (e.g., filogic)'
+    required: true
+  prebuilt_golang:
+    description: 'Path to prebuilt golang package'
+    required: false
+    default: ''
+  golang_hash:
+    description: 'Expected SHA256 hash of the prebuilt golang package (optional)'
+    required: false
+  module:
+    description: 'Name of the module to build (e.g., tollgate-module-relay-go)'
+    required: true
 outputs:
   package_path:
     description: 'Path to the built package'
@@ -226,364 +241,220 @@ runs:
       fi
       
 
-  - name: Build firmware
-    id: build_firmware
-    env:
-      MODEL: ${{ inputs.model }}
-      PLATFORM: ${{ env.PLATFORM }}
-      SUBTARGET: ${{ env.SUBTARGET }}
-      PACKAGE_NAME: ${{ inputs.packageName }}
-    uses: nick-fields/retry@v2
-    with:
-      continue_on_error: 'false'
-      timeout_minutes: 18
-      max_attempts: 1
-      command: |
-        VERSION=23.05.3
-        MODULE=${{ inputs.packageName }}
-        SDKDIR=/tmp/openwrt-sdk
-        SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-        
-        # Debug information
-        echo "Build firmware started"
-        echo "Building for model: ${{ inputs.model }}"
-        echo "Platform: ${{ env.PLATFORM }}"
-        echo "Subtarget: ${{ env.SUBTARGET }}"
-        echo "Package name: ${{ inputs.packageName }}"
+  - name: Setup Build Environment
+    shell: bash
+    run: |
+      # If prebuilt golang is provided, install it
+      if [ -n "${{ inputs.prebuilt_golang }}" ]; then
+        echo "Using prebuilt golang package..."
+        mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
+        cp "${{ inputs.prebuilt_golang }}" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
+      fi
 
-        # Set up GO environment correctly
-        export GOROOT=/usr/local/go
-        export PATH=$PATH:$GOROOT/bin
-
-        # 1. Set up correct package directory structure
-        echo "Setting up golang and required include files..."
-
-        # 1. Create package framework first
-        mkdir -p "${SDK_PATH}/package/golang"
-        cp -r "${{ github.action_path }}/lang/golang" "${SDK_PATH}/package/golang"
-
-        # 2. Set up feed structure
-        FEED_DIR="${SDK_PATH}/feeds/packages/lang/golang"
-        mkdir -p "${FEED_DIR}"
-        cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${FEED_DIR}/"
-        cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${FEED_DIR}/"
-
-        # 3. Link to system includes
-        ln -sf "${FEED_DIR}/golang-package.mk" "${SDK_PATH}/include/golang-package.mk"
-        ln -sf "${FEED_DIR}/golang-values.mk" "${SDK_PATH}/include/golang-values.mk"
-
-        # 2. Copy makefiles and custom golang packages
-        #mkdir -p "${SDK_PATH}/include"
-        #mkdir -p "${SDK_PATH}/package/lang/golang"
-        #cp -r "${{ github.action_path }}/lang/golang/golang"/* "${SDK_PATH}/package/lang/golang/"
-        #mkdir -p "${SDK_PATH}/package/lang/golang/files"
-        #cp -r "${{ github.action_path }}/lang/golang/golang/files"/* "${SDK_PATH}/package/lang/golang/files/" || true
-
-        # 3. Copy golang makefiles
-        #cp "${{ github.action_path }}/lang/golang/golang-build.sh" "${SDK_PATH}/package/lang/"
-        #cp "${{ github.action_path }}/lang/golang/golang-compiler.mk" "${SDK_PATH}/package/lang/"
-        #cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/include/"
-        #cp "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/package/lang/"
-        #cp "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/package/lang/"
-        #cp "${{ github.action_path }}/lang/golang/golang-host-build.mk" "${SDK_PATH}/package/lang/"
-        #chmod 644 "${SDK_PATH}/include/golang-package.mk"
-
-        # Verify the file exists in both locations
-        #ls -la "${SDK_PATH}/include/golang-package.mk" "${SDK_PATH}/package/lang/golang-package.mk"
-
-        # Copy golang.mk to include directory
-        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-
-        # In the Build firmware step, before make defconfig
-        mkdir -p "${SDK_PATH}/feeds/packages/lang/golang"
-        cp -r "${{ github.action_path }}/lang/golang/golang-package.mk" "${SDK_PATH}/feeds/packages/lang/golang/golang-package.mk"
-        cp -r "${{ github.action_path }}/lang/golang/golang-values.mk" "${SDK_PATH}/feeds/packages/lang/golang/golang-values.mk"
-
-        # Verify core OpenWRT paths
-        echo "==================== SDK DIRECTORY STRUCTURE ===================="
-        ls -la ${SDK_PATH}/feeds/packages/lang/golang/
-        ls -la ${SDK_PATH}/include/
-
-        # After copying files, add these checks
-        if [ ! -f "${SDK_PATH}/include/golang-package.mk" ]; then
-          echo "ERROR: golang-package.mk missing in include dir!"
-          find "${SDK_PATH}" -name "golang-package.mk"
-          exit 1
-        fi
-
-        # Verify Makefile can access the includes
-        echo "Testing Makefile includes..."
-        make -C ${SDK_PATH} printvars V=sc | grep INCLUDE_DIR
-        make -C ${SDK_PATH} printvars V=sc | grep TOPDIR
-
-        # 4. Go to SDK directory
+  - name: Install Prebuilt Golang
+    if: inputs.prebuilt_golang != ''
+    shell: bash
+    run: |
+      if [ -f "${{ inputs.prebuilt_golang }}" ]; then
+        echo "Installing prebuilt golang package..."
+        mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
+        cp "${{ inputs.prebuilt_golang }}" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
         cd "${SDK_PATH}"
-
-        # 5. Update and install feeds
+        # Install the prebuilt package
         ./scripts/feeds update -a
-        ./scripts/feeds install -a
+        ./scripts/feeds install golang
+      else
+        echo "Error: Prebuilt golang package not found at ${{ inputs.prebuilt_golang }}"
+          exit 1
+      fi
+        
+    # Module specific build steps start here
+  - name: Set up module variables
+    shell: bash
+    run: |
+      # Set MODULE from input
+      MODULE="${{ inputs.module }}"
+      if [ -z "$MODULE" ]; then
+        echo "Error: module input is required"
+        exit 1
+      fi
+      echo "Building module: $MODULE"
 
-        # 6. Ensure golang is installed
-        ./scripts/feeds uninstall golang || true
-        ./scripts/feeds install -p custom lang/golang
+      # Parse feed name and verify it's not empty
+      FEED_NAME=$(echo "$MODULE" | sed -E 's/tollgate-module-(.+)-go/\1/')
+      if [ -z "$FEED_NAME" ]; then
+        echo "Error: Could not parse feed name from module: $MODULE"
+        exit 1
+      fi
+      echo "Using feed name: $FEED_NAME for module: $MODULE"
       
-        # 7. Configure the build system and enable golang package
-        make defconfig
-        echo "CONFIG_PACKAGE_golang=y" >> .config
+      # Extract binary name from the module name
+      BINARY_NAME=$(echo "$MODULE" | sed 's/tollgate-module-/tollgate-/')
+      
+      # Export variables for subsequent steps
+      echo "MODULE=$MODULE" >> $GITHUB_ENV
+      echo "FEED_NAME=$FEED_NAME" >> $GITHUB_ENV
+      echo "BINARY_NAME=$BINARY_NAME" >> $GITHUB_ENV
 
-        # Debug information
-        echo "Finished `make defconfig`"
-        echo "=== SDK Structure ==="
-        ls -la "${SDK_PATH}"
-        echo "=== Package Directory ==="
-        ls -la "${SDK_PATH}/package/lang/golang" || echo "Golang package directory not found"
-        echo "=== Feeds Configuration ==="
-        cat "${SDK_PATH}/feeds.conf"
+  - name: Configure build environment
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      # Configure the build
+      make defconfig
 
-        echo "=== Installed Packages ==="
-        ./scripts/feeds list -r | grep golang
+      # Make sure include directory exists and copy golang.mk
+      mkdir -p $SDK_PATH/include
+      cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
+      
+      # Update and install the module feed
+      ./scripts/feeds update ${{ env.FEED_NAME }}
+      ./scripts/feeds install -a -p ${{ env.FEED_NAME }}
 
-        # Try to display the package Makefile
-        echo "=== Golang Makefile ==="
-        cat "${SDK_PATH}/package/lang/golang/Makefile" || echo "Makefile not found"
+      # Check if the module is available
+      if ! ./scripts/feeds list -r | grep "${{ env.MODULE }}"; then
+          echo "Error: Module ${{ env.MODULE }} not found in feeds"
+          echo "Available modules:"
+          ./scripts/feeds list -r
+          exit 1
+      fi
 
-        # Try compiling with full path
-        echo "Compiling golang..."
-        make package/lang/golang/compile V=sc || echo "Failed to compile golang"
+      # Enable the module in the config
+      echo "CONFIG_PACKAGE_${{ env.MODULE }}=y" >> .config
 
-        # Use find to locate any golang-related files in the build system
-        echo "=== Finding golang in build system ==="
-        find "${SDK_PATH}" -name golang -type d
-        find "${SDK_PATH}" -name "golang*.mk"
+  - name: Debug package structure
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      echo "Debugging package structure:"
+      echo "Contents of feed directory:"
+      ls -la "${SDK_PATH}/feeds/${{ env.FEED_NAME }}/package/${{ env.MODULE }}" || echo "Feed directory doesn't exist"
 
-        echo "cat .config | grep golang"
-        cat .config | grep "golang"
+      echo "Contents of build directory:"
+      BUILD_DIR_PATTERN="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/${{ env.MODULE }}-*"
+      ls -la $BUILD_DIR_PATTERN || echo "Build directory doesn't exist"
 
-        # Check for any build logs
-        echo "=== Build Logs ==="
-        find "${SDK_PATH}/logs" -name "*.log" -exec ls -la {} \; || echo "No log files found"
+      echo "Checking Makefile content:"
+      cat "${SDK_PATH}/feeds/${{ env.FEED_NAME }}/package/${{ env.MODULE }}/Makefile" || echo "Makefile not found"
 
-        # Check for any built packages
-        echo "=== Output Packages ==="
-        find "${SDK_PATH}" -name "*.ipk" || echo "No golang packages found"
-
-        # Make sure include directory exists and copy golang.mk
-        mkdir -p $SDK_PATH/include
-
-        cp ${{github.action_path}}/golang.mk $SDK_PATH/include/golang.mk
-        # make package/feeds/custom/${{ inputs.packageName }}/compile V=sc
-
-        # 8. Parse feed name from module name
-        FEED_NAME=$(echo "$MODULE" | sed -E 's/tollgate-module-(.+)-go/\1/')
-        echo "Using feed name: $FEED_NAME for module: $MODULE"
-
-        # 9. Update and install the module feed
-        ./scripts/feeds update $FEED_NAME
-        ./scripts/feeds install -a -p $FEED_NAME
-
-        # Check if the module is available
-        ./scripts/feeds list -r | grep $MODULE
-
-        # 10. Enable the module in the config
-        echo "CONFIG_PACKAGE_$MODULE=y" >> .config
-
-        # Debug the package structure
-        echo "Debugging package structure:"
-        echo "Contents of feed directory:"
-        ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE" || echo "Feed directory doesn't exist"
-
-        echo "Contents of build directory:"
-        BUILD_DIR_PATTERN="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl/$MODULE-*"
-        ls -la $BUILD_DIR_PATTERN || echo "Build directory doesn't exist"
-
-        echo "Checking Makefile content:"
-        cat "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile" || echo "Makefile not found"
-
-        # Find the build directory and pin the problematic package version
+  - name: Apply relay-specific fixes
+    if: inputs.module == 'tollgate-module-relay-go'
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      # Determine the correct build directory prefix based on platform
+      if [ "${{ inputs.platform }}" == "ath79" ]; then
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-mips_24kc_musl"
+      else
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
-        PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
-        if [ -n "$PACKAGE_BUILD_DIR" ]; then
-          echo "Package build directory: $PACKAGE_BUILD_DIR"
-          echo "Pinning bytedance/sonic package version to fix compilation issues..."
-          cd "$PACKAGE_BUILD_DIR" && \
-          go mod edit -replace github.com/bytedance/sonic=github.com/bytedance/sonic@1.12.10 && \
-          go mod edit -require github.com/bytedance/sonic@1.12.10 && \
-          go mod tidy && \
-          # Verify the pinning worked
-          go list -m github.com/bytedance/sonic && \
-          # Create vendor directory
-          go mod vendor && \
-          echo "Checking if sonic is properly vendored:"
-          find vendor -path "*/bytedance/sonic*" || echo "Failed to vendor sonic package"
-          echo "go.mod after pinning:"
-          cat "$PACKAGE_BUILD_DIR/go.mod"
-        fi
+      fi
+      
+      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "${{ env.MODULE }}-*" -type d | head -n 1)
+      if [ -n "$PACKAGE_BUILD_DIR" ]; then
+        echo "Package build directory: $PACKAGE_BUILD_DIR"
+        echo "Pinning bytedance/sonic package version to fix compilation issues..."
+        cd "$PACKAGE_BUILD_DIR" && \
+        go mod edit -replace github.com/bytedance/sonic=github.com/bytedance/sonic@1.12.10 && \
+        go mod edit -require github.com/bytedance/sonic@1.12.10 && \
+        go mod tidy && \
+        # Verify the pinning worked
+        go list -m github.com/bytedance/sonic && \
+        # Create vendor directory
+        go mod vendor && \
+        echo "Checking if sonic is properly vendored:"
+        find vendor -path "*/bytedance/sonic*" || echo "Failed to vendor sonic package"
+        echo "go.mod after pinning:"
+        cat "$PACKAGE_BUILD_DIR/go.mod"
+      fi
 
-        echo "Checking if src directory exists:"
-        ls -la "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/src" || echo "src directory doesn't exist"
+  - name: Compile module
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      # Try to compile with the feed path
+      make package/feeds/${{ env.FEED_NAME }}/${{ env.MODULE }}/compile V=sc
 
-        # Add these to your debug step
-        echo "Complete file listing in build directory:"
-        find "${PKG_BUILD_DIR}" -type f -name "*.go" | sort || echo "No Go files found"
+      echo "NOTE: Error messages about '.go_work/build/src/...' not being found are expected and can be ignored"
+      echo "      These occur because we're using a custom build process that bypasses OpenWrt's default Go workspace."
 
-        echo "Go environment:"
-        go env || echo "Go not available"
-
-        echo "go.mod contents:"
-        cat "${PKG_BUILD_DIR}/go.mod" || echo "go.mod not found"
-
-        # Extract binary name from the module name (replace "tollgate-module-" with "tollgate-")
-        BINARY_NAME=$(echo "$MODULE" | sed 's/tollgate-module-/tollgate-/')
-
-        # Try to compile with the feed path
-        make package/feeds/$FEED_NAME/$MODULE/compile V=sc
-
-        echo "NOTE: Error messages about '.go_work/build/src/...' not being found are expected and can be ignored"
-        echo "      These occur because we're using a custom build process that bypasses OpenWrt's default Go workspace."
-
-        # Find the built binary in the build directory
+  - name: Verify build output
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      # Determine the correct build directory prefix based on platform
+      if [ "${{ inputs.platform }}" == "ath79" ]; then
+        BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-mips_24kc_musl"
+      else
         BUILD_DIR_PREFIX="${SDK_PATH}/build_dir/target-aarch64_cortex-a53_musl"
-        echo "Searching for the built binary ($BINARY_NAME):"
-        find "${BUILD_DIR_PREFIX}" -name "$BINARY_NAME" -type f -executable | sort
+      fi
+      
+      echo "Searching for the built binary (${{ env.BINARY_NAME }}):"
+      find "${BUILD_DIR_PREFIX}" -name "${{ env.BINARY_NAME }}" -type f -executable | sort
 
-        # Get the specific build directory for this package
-        PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "$MODULE-*" -type d | head -n 1)
-        if [ -n "$PACKAGE_BUILD_DIR" ]; then
-          echo "Package build directory: $PACKAGE_BUILD_DIR"
-          echo "Listing contents of build directory:"
-          ls -la "$PACKAGE_BUILD_DIR"
+      # Get the specific build directory for this package
+      PACKAGE_BUILD_DIR=$(find "${BUILD_DIR_PREFIX}" -maxdepth 1 -name "${{ env.MODULE }}-*" -type d | head -n 1)
+      if [ -n "$PACKAGE_BUILD_DIR" ]; then
+        echo "Package build directory: $PACKAGE_BUILD_DIR"
+        echo "Listing contents of build directory:"
+        ls -la "$PACKAGE_BUILD_DIR"
 
-          # Check if binary exists
-          if [ -f "$PACKAGE_BUILD_DIR/$BINARY_NAME" ]; then
-            echo "Binary found at: $PACKAGE_BUILD_DIR/$BINARY_NAME"
-            echo "binary_path=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_OUTPUT
-            echo "BINARY_PATH=$PACKAGE_BUILD_DIR/$BINARY_NAME" >> $GITHUB_ENV
-          else
-            echo "Binary not found in expected location!"
-            # Search recursively through the build directory
-            find "$PACKAGE_BUILD_DIR" -name "$BINARY_NAME" -type f -executable
-          fi
+        # Check if binary exists
+        if [ -f "$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" ]; then
+          echo "Binary found at: $PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}"
+          echo "binary_path=$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" >> $GITHUB_OUTPUT
+          echo "BINARY_PATH=$PACKAGE_BUILD_DIR/${{ env.BINARY_NAME }}" >> $GITHUB_ENV
         else
-          echo "Could not find package build directory!"
+          echo "Binary not found in expected location!"
+          # Search recursively through the build directory
+          find "$PACKAGE_BUILD_DIR" -name "${{ env.BINARY_NAME }}" -type f -executable
         fi
+      else
+        echo "Could not find package build directory!"
+      fi
 
-        # Also check the .go_work directory which might contain the compiled binary
-        GO_WORK_DIR=$(find "${BUILD_DIR_PREFIX}" -path "*/.go_work/build/bin/linux_arm64" -type d | head -n 1)
-        if [ -n "$GO_WORK_DIR" ]; then
-          echo "Go work binary directory: $GO_WORK_DIR"
-          ls -la "$GO_WORK_DIR"
-        fi
+      # Also check the .go_work directory which might contain the compiled binary
+      GO_WORK_DIR=$(find "${BUILD_DIR_PREFIX}" -path "*/.go_work/build/bin/linux_arm64" -type d | head -n 1)
+      if [ -n "$GO_WORK_DIR" ]; then
+        echo "Go work binary directory: $GO_WORK_DIR"
+        ls -la "$GO_WORK_DIR"
+      fi
 
-        # Inspect the IPK file to see where the binary is supposed to be installed
-        # echo "Inspecting IPK file contents:"
-        # if [ -n "$PACKAGE_FULLPATH" ]; then
-        #  mkdir -p /tmp/ipk-inspect
-        #  cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
-        #  cd /tmp/ipk-inspect
-        #  ar x $(basename "$PACKAGE_FULLPATH")
-        #  tar -xzf data.tar.gz
-        #  echo "Binary in IPK package:"
-        #  find . -type f -executable
-        #  cd -
-        #fi
+      # Debug output to see what was built
+      echo "Contents of bin/packages directory:"
+      find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
 
-        # If that doesn't work, try a direct path
-        # You might need to find out the actual path where it's installed
-        find "${SDK_PATH}/feeds" -name "$MODULE" -type d
+  - name: Validate and export package
+    shell: bash
+    run: |
+      cd "${SDK_PATH}"
+      
+      # Find the IPK file and store its path in PACKAGE_FULLPATH
+      PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${{ env.MODULE }}_*.ipk" | head -n 1)
+      echo "Found package at: $PACKAGE_FULLPATH"
 
-        # Debug output to see what was built
-        echo "Contents of bin/packages directory:"
-        find "${SDK_PATH}/bin/packages" -type f -name "*.ipk" | sort
+      # Save to GitHub outputs and environment
+      if [ -n "$PACKAGE_FULLPATH" ]; then
+        echo "Package found at: $PACKAGE_FULLPATH"
+        echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
+        echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+      else
+        echo "ERROR: Could not find package file matching ${{ env.MODULE }}_*.ipk"
+        echo "Available packages:"
+        find "${SDK_PATH}/bin/packages" -name "*.ipk"
+        exit 1
+      fi
 
-        # 11. Check the module's Makefile
-        MAKEFILE_PATH="${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE/Makefile"
-        if [ -f "$MAKEFILE_PATH" ]; then
-          echo "Found Makefile for $MODULE at $MAKEFILE_PATH"
-          echo "Checking Makefile content:"
-          cat "$MAKEFILE_PATH"
-        else
-          echo "ERROR: Makefile not found at $MAKEFILE_PATH"
-          echo "Creating Makefile from template..."
-
-          # Create directory if it doesn't exist
-          mkdir -p "${SDK_PATH}/feeds/$FEED_NAME/package/$MODULE"
-          echo "Makefile not found in $MAKEFILE_PATH"
-          exit 1
-        fi
-        
-        # 16. Generate package index
-        #cd "${SDK_PATH}"
-        #TARGET_ARCH="$(grep 'CONFIG_ARCH=' ${SDK_PATH}/.config | cut -d= -f2 | tr -d '\"')"
-        #ARCH_DIR="${SDK_PATH}/bin/packages/${TARGET_ARCH}"
-        # ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
-        #mkdir -p "$ARCH_DIR"
-        #"${SDK_PATH}/staging_dir/host/bin/opkg-make-index" "$ARCH_DIR" > "${ARCH_DIR}/Packages"
-        #gzip -9c "${ARCH_DIR}/Packages" > "${ARCH_DIR}/Packages.gz"
-
-        #ARCH_DIR="${SDK_PATH}/bin/packages/${PLATFORM}_${SUBTARGET}"
-        #mkdir -p "$ARCH_DIR"
-        
-        #FOUND_IPK=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
-
-        # Find the IPK file and store its path in PACKAGE_FULLPATH
-        PACKAGE_FULLPATH=$(find "${SDK_PATH}/bin/packages" -name "${MODULE}_*.ipk" | head -n 1)
-        echo "Found package at: $PACKAGE_FULLPATH"
-
-        # Save to GitHub outputs and environment
-        if [ -n "$PACKAGE_FULLPATH" ]; then
-          echo "Package found at: $PACKAGE_FULLPATH"
-          echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
-          echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        else
-          echo "ERROR: Could not find package file matching ${MODULE}_*.ipk"
-          echo "Available packages:"
-          find "${SDK_PATH}/bin/packages" -name "*.ipk"
-          exit 1
-        fi
-
-        # Verify existence
-        #if [ ! -f "$PACKAGE_FULLPATH" ]; then
-        #  echo "ERROR: Package never appeared at $PACKAGE_FULLPATH"
-        #  find "${SDK_PATH}/bin/packages" -name "*.ipk"
-        #  exit 1
-        #fi
-
-        # Validate IPK structure
-        echo "Validating IPK file format..."
-        if [ -f "$PACKAGE_FULLPATH" ]; then
-        #  # Validate IPK structure
-        #  echo "Validating IPK file format..."
-        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "debian-binary"; then
-        #    echo "ERROR: Invalid IPK format! Missing debian-binary"
-        #    exit 1
-        #  fi
-
-        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "control.tar.gz"; then
-        #    echo "ERROR: Invalid IPK format! Missing control.tar.gz"
-        #    exit 1
-        #  fi
-
-        #  if ! ar t "$PACKAGE_FULLPATH" | grep -q "data.tar.gz"; then
-        #    echo "ERROR: Invalid IPK format! Missing data.tar.gz"
-        #    exit 1
-        #  fi
-
-        #  # Verify binary in IPK
-        #  mkdir -p /tmp/ipk-inspect
-        #  cp "$PACKAGE_FULLPATH" /tmp/ipk-inspect/
-        #  cd /tmp/ipk-inspect
-        #  ar x $(basename "$PACKAGE_FULLPATH")
-        #  tar -tzf data.tar.gz | grep -E "usr/bin/tollgate-.*" || {
-        #    echo "WARNING: Expected binary pattern 'usr/bin/tollgate-*' not found in package"
-        #    echo "Package contents:"
-        #    tar -tzf data.tar.gz | grep -E "usr/bin/"
-        #  }
-
-        #  echo "IPK validation successful!"
-          echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
-          echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
-        else
-          echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
-          exit 1
-        fi
-
+      # Validate IPK structure
+      echo "Validating IPK file format..."
+      if [ -f "$PACKAGE_FULLPATH" ]; then
+        echo "package_path=$PACKAGE_FULLPATH" >> $GITHUB_OUTPUT
+        echo "PACKAGE_FULLPATH=$PACKAGE_FULLPATH" >> $GITHUB_ENV
+      else
+        echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
+        exit 1
+      fi

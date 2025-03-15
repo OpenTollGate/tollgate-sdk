@@ -2,14 +2,26 @@
 name: Build Firmware
 
 on:
+  workflow_run:
+    workflows: ["Prebuild Golang"]
+    types:
+      - completed
   push:
     branches:
       - '*'
   workflow_dispatch:
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Basic setup steps that don't depend on anything
+
   build:
     runs-on: ubuntu-latest
+    needs: prepare
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     strategy:
       matrix:
         module: [
@@ -21,34 +33,44 @@ jobs:
           #"tollgate-module-crowsnest-go"
         ]
         target: [
-          {model: "gl-ar300m"},
-          {model: "gl-mt3000"},
-          {model: "gl-mt6000"}
+          {model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
+          {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"},
+          {model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
         ]
-      fail-fast: false
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build OpenWRT Package
-        uses: ./ # Uses the local action
-        id: build
+      - uses: actions/checkout@v4
+      
+      # Download prebuilt golang if this was triggered by prebuild workflow
+      - name: Download Prebuilt Golang
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v4
         with:
-          packageName: ${{ matrix.module }}
-          makeFilePath: ${{ github.workspace }}/Makefile
+          name: golang-${{ matrix.target.model }}-${{ matrix.target.platform }}-${{ matrix.target.subtarget }}
+          path: prebuilt/
+
+      - name: Build Firmware
+        id: build_firmware
+        uses: ./
+        with:
           model: ${{ matrix.target.model }}
+          platform: ${{ matrix.target.platform }}
+          subtarget: ${{ matrix.target.subtarget }}
+          prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt/golang*.ipk' || '' }}
+          module: ${{ matrix.module }}
 
       - name: Debug Package Path
         run: |
-          echo "Package Path: ${{ steps.build.outputs.package_path }}"
-          ls -l 
-          ls -l "${{ steps.build.outputs.package_path }}"
+          if [ -n "${{ env.PACKAGE_FULLPATH }}" ]; then
+            echo "Package Path: ${{ env.PACKAGE_FULLPATH }}"
+            ls -la "${{ env.PACKAGE_FULLPATH }}"
+          else
+            echo "Warning: No package path found in environment"
+          fi
 
       - name: Upload Package to Blossom
         id: upload_package
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
-          filePath: ${{ steps.build.outputs.package_path }}
+          filePath: ${{ env.PACKAGE_FULLPATH }}
           nostrPrivateKey: ${{ secrets.NSEC }}
