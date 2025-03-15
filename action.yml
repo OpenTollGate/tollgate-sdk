@@ -276,6 +276,19 @@ runs:
       
       # Set MODULE from input
       MODULE="${{ inputs.module }}"
+      if [ -z "$MODULE" ]; then
+        echo "Error: module input is required"
+        exit 1
+      fi
+      echo "Building module: $MODULE"
+
+      # Parse feed name and verify it's not empty
+      FEED_NAME=$(echo "$MODULE" | sed -E 's/tollgate-module-(.+)-go/\1/')
+      if [ -z "$FEED_NAME" ]; then
+        echo "Error: Could not parse feed name from module: $MODULE"
+        exit 1
+      fi
+      echo "Using feed name: $FEED_NAME"
       
       # Configure the build
       make defconfig
