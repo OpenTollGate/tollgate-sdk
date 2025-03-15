@@ -5,7 +5,7 @@ on:
     - cron: '0 0 * * 0'  # Weekly rebuild on Sunday
   push:
     paths:
-      - 'lang/golang/**'
+      - 'package/lang/golang/**'
       - '.github/workflows/prebuild-golang.yml'
 
 jobs:
@@ -76,14 +76,14 @@ jobs:
           ./scripts/feeds install -a
 
           # Create package framework
-          mkdir -p "${SDK_PATH}/package/golang"
-          cp -r lang/golang "${SDK_PATH}/package/golang"
+          mkdir -p "${SDK_PATH}/package/lang/golang"
+          cp -r package/lang/golang "${SDK_PATH}/package/golang"
           
           # Set up feed structure
           FEED_DIR="${SDK_PATH}/feeds/packages/lang/golang"
           mkdir -p "${FEED_DIR}"
-          cp lang/golang/golang-package.mk "${FEED_DIR}/"
-          cp lang/golang/golang-values.mk "${FEED_DIR}/"
+          cp package/lang/golang/golang-package.mk "${FEED_DIR}/"
+          cp package/lang/golang/golang-values.mk "${FEED_DIR}/"
           
           # Link to system includes
           ln -sf "${FEED_DIR}/golang-package.mk" "${SDK_PATH}/include/golang-package.mk"
