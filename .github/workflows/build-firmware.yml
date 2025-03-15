@@ -155,10 +155,3 @@ jobs:
           size: ${{ env.ZIP_SIZE }}
           privateKey: ${{ secrets.NSEC }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
-  
-      - name: Verify Package NIP-94 Event
-        id: verify_package
-        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
-        with:
-          eventId: ${{ steps.publish_package.outputs.eventId }}
-          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
