@@ -31,6 +31,7 @@ jobs:
 
       - name: Upload Test File to Blossom
         id: upload_test
+        continue-on-error: true
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
@@ -140,6 +141,7 @@ jobs:
 
       - name: Upload Zipped Package to Blossom
         id: upload_package
+        continue-on-error: true
         uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
         with:
           host: "https://blossom.swissdash.site"
