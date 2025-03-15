@@ -51,7 +51,10 @@ jobs:
 
       - name: Build Firmware
         id: build_firmware
-        uses: ./
+        uses: actions/checkout@v4
+        with:
+          repository: OpenTollGate/tollgate-sdk
+          path: .
         with:
           model: ${{ matrix.target.model }}
           platform: ${{ matrix.target.platform }}
