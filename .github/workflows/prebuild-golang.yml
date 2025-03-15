@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history and tags
 
       - name: Setup python 3.12
         uses: actions/setup-python@v4
@@ -39,7 +41,10 @@ jobs:
         run: |
           pwd
           ls -la
-          ls -la lang/ || echo "lang directory not found"
+          echo "Contents of lang directory:"
+          ls -la lang/
+          echo "Contents of lang/golang directory:"
+          ls -la lang/golang/
 
       - name: Download and extract SDK
         env:
@@ -69,6 +74,8 @@ jobs:
         env:
           SDK_PATH: ${{ env.SDK_PATH }}
         run: |
+          REPO_ROOT=$PWD
+          
           # Copy feeds.conf
           cp feeds.conf "${SDK_PATH}"/feeds.conf
           cd "${SDK_PATH}"
@@ -76,14 +83,14 @@ jobs:
           ./scripts/feeds install -a
 
           # Create package framework
-          mkdir -p "${SDK_PATH}/package/lang/golang"
-          cp -r package/lang/golang "${SDK_PATH}/package/golang"
+          mkdir -p "${SDK_PATH}/package/golang"
+          cp -r "${REPO_ROOT}/lang/golang" "${SDK_PATH}/package/golang"
           
           # Set up feed structure
           FEED_DIR="${SDK_PATH}/feeds/packages/lang/golang"
           mkdir -p "${FEED_DIR}"
-          cp package/lang/golang/golang-package.mk "${FEED_DIR}/"
-          cp package/lang/golang/golang-values.mk "${FEED_DIR}/"
+          cp "${REPO_ROOT}/lang/golang/golang-package.mk" "${FEED_DIR}/"
+          cp "${REPO_ROOT}/lang/golang/golang-values.mk" "${FEED_DIR}/"
           
           # Link to system includes
           ln -sf "${FEED_DIR}/golang-package.mk" "${SDK_PATH}/include/golang-package.mk"
