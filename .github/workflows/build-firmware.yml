@@ -54,6 +54,7 @@ jobs:
           platform: ${{ matrix.target.platform }}
           subtarget: ${{ matrix.target.subtarget }}
           prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt/golang*.ipk' || '' }}
+          module: ${{ matrix.module }}
 
       - name: Debug Package Path
         run: |
