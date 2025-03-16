@@ -221,6 +221,32 @@ runs:
         exit 1
       fi
 
+  - name: Setup Build Environment
+    shell: bash
+    run: |
+      # If prebuilt golang is provided, install it
+      if [ -n "${{ inputs.prebuilt_golang }}" ]; then
+        echo "Using prebuilt golang package from directory: ${{ inputs.prebuilt_golang }}"
+        mkdir -p "${SDK_PATH}/bin/packages/${{ inputs.platform }}"
+        
+        # Find the golang IPK file in the specified directory
+        GOLANG_IPK=$(find "${{ inputs.prebuilt_golang }}" -name "golang*.ipk" | head -1)
+        
+        if [ -n "$GOLANG_IPK" ] && [ -f "$GOLANG_IPK" ]; then
+          echo "Found prebuilt golang package: $GOLANG_IPK"
+          cp "$GOLANG_IPK" "${SDK_PATH}/bin/packages/${{ inputs.platform }}/"
+          echo "Copied golang package to SDK"
+          
+          # Install the prebuilt package
+          cd "${SDK_PATH}"
+          ./scripts/feeds update -a
+          ./scripts/feeds install golang
+        else
+          echo "Warning: No prebuilt golang package found in ${{ inputs.prebuilt_golang }} directory"
+          ls -la "${{ inputs.prebuilt_golang }}/" || echo "Directory doesn't exist or is empty"
+        fi
+      fi
+
       echo "Examining package dump files..."
       if [ ! -d "${SDK_PATH}/logs" ]; then
         echo "Logs directory does not exist yet - this is normal if feeds haven't been processed"

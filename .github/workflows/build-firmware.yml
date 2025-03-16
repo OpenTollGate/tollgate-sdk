@@ -96,7 +96,7 @@ jobs:
           model: ${{ matrix.target.model }}
           platform: ${{ matrix.target.platform }}
           subtarget: ${{ matrix.target.subtarget }}
-          prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt/golang*.ipk' || '' }}
+          prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt' || '' }}
           module: ${{ matrix.module }}
 
       - name: Debug Package Path
