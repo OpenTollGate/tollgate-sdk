@@ -217,7 +217,7 @@ jobs:
           fileHash: ${{ steps.upload_package.outputs.hash }}
           originalHash: ${{ env.PACKAGE_HASH }}
           content: "TollGate Module Package: ${{ env.MODULE_NAME }} for ${{ matrix.target.model }}"
-          nsec: ${{ secrets.NSECBECH }}
+          nsec: ${{ secrets.NSEC }}
           size: ${{ env.FILE_SIZE }}
           architecture: ${{ env.ARCH }}
           model: ${{ matrix.target.model }}
