@@ -111,6 +111,24 @@ jobs:
             PACKAGE_HASH=$(sha256sum "${{ env.PACKAGE_FULLPATH }}" | cut -d' ' -f1)
             echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
             echo "Original package hash: $PACKAGE_HASH"
+            
+            # Get file size
+            FILE_SIZE=$(stat -c%s "${{ env.PACKAGE_FULLPATH }}")
+            echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_ENV
+            
+            # Extract module name from the package name (remove tollgate-module- prefix)
+            MODULE_NAME=$(echo "${{ matrix.module }}" | sed 's/tollgate-module-//;s/-go//')
+            echo "MODULE_NAME=$MODULE_NAME" >> $GITHUB_ENV
+            
+            # Map target architecture to release.json architecture format
+            if [[ "${{ matrix.target.platform }}" == "ath79" ]]; then
+              ARCH="mipsel_24kc"
+            elif [[ "${{ matrix.target.platform }}" == "mediatek" ]]; then
+              ARCH="aarch64_cortex-a53"
+            else
+              ARCH="unknown"
+            fi
+            echo "ARCH=$ARCH" >> $GITHUB_ENV
           else
             echo "Warning: No package path found in environment"
           fi
@@ -188,4 +206,139 @@ jobs:
             echo "Original hash: ${{ env.PACKAGE_HASH }}"
             echo "Downloaded hash: $DOWNLOADED_HASH"
             echo "This indicates the file was modified during upload or download."
+          fi
+
+      - name: Publish Package NIP-94 Metadata
+        id: publish_package
+        if: steps.upload_package.outputs.success == 'true'
+        uses: OpenTollGate/nostr-publish-file-metadata-action@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_package.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_package.outputs.hash }}
+          originalHash: ${{ env.PACKAGE_HASH }}
+          content: "TollGate Module Package: ${{ env.MODULE_NAME }} for ${{ matrix.target.model }}"
+          nsec: ${{ secrets.NSECBECH }}
+          size: ${{ env.FILE_SIZE }}
+          architecture: ${{ env.ARCH }}
+          model: ${{ matrix.target.model }}
+          module: ${{ env.MODULE_NAME }}
+          version: "0.0.1"
+
+      - name: Verify Package NIP-94 Event
+        id: verify_package
+        if: steps.publish_package.outputs.eventId != ''
+        uses: OpenTollGate/nostr-publish-file-metadata-action/verify@main
+        with:
+          eventId: ${{ steps.publish_package.outputs.eventId }}
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+
+  update-release-json:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout TollGate OS Repository
+        uses: actions/checkout@v4
+        with:
+          repository: OpenTollGate/tollgate-os
+          path: tollgate-os
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List Downloaded Artifacts
+        run: |
+          find artifacts -type f | sort
+
+      - name: Update release.json
+        run: |
+          cd tollgate-os
+          
+          # Create a backup of the original file
+          cp release.json release.json.bak
+          
+          # Process each artifact and update release.json
+          for ARTIFACT_DIR in ../artifacts/package-*; do
+            if [ -d "$ARTIFACT_DIR" ]; then
+              # Extract model and module from directory name
+              DIR_NAME=$(basename "$ARTIFACT_DIR")
+              MODEL=$(echo "$DIR_NAME" | cut -d'-' -f2)
+              MODULE_FULL=$(echo "$DIR_NAME" | cut -d'-' -f3-)
+              MODULE=$(echo "$MODULE_FULL" | sed 's/tollgate-module-//;s/-go//')
+              
+              # Find the IPK file
+              IPK_FILE=$(find "$ARTIFACT_DIR" -name "*.ipk" | head -1)
+              
+              if [ -n "$IPK_FILE" ]; then
+                # Get file hash and size
+                FILE_HASH=$(sha256sum "$IPK_FILE" | cut -d' ' -f1)
+                FILE_SIZE=$(stat -c%s "$IPK_FILE")
+                
+                # Map model to architecture
+                if [[ "$MODEL" == "gl-ar300m" ]]; then
+                  ARCH="mipsel_24kc"
+                elif [[ "$MODEL" == "gl-mt3000" || "$MODEL" == "gl-mt6000" ]]; then
+                  ARCH="aarch64_cortex-a53"
+                else
+                  ARCH="unknown"
+                fi
+                
+                # Get event ID from workflow outputs (if available)
+                EVENT_ID=$(grep -r "eventId.*$FILE_HASH" ../artifacts || echo "")
+                if [[ "$EVENT_ID" =~ eventId\":\"([a-f0-9]+) ]]; then
+                  EVENT_ID="${BASH_REMATCH[1]}"
+                else
+                  EVENT_ID="[NIP94_EVENT_ID]"
+                fi
+                
+                echo "Updating release.json for module $MODULE, model $MODEL, arch $ARCH"
+                echo "File hash: $FILE_HASH"
+                
+                # Use jq to update the release.json file
+                # This is a complex operation that requires careful JSON manipulation
+                TMP_FILE=$(mktemp)
+                jq --arg module "$MODULE" \
+                   --arg arch "$ARCH" \
+                   --arg url "https://blossom.swissdash.site/$FILE_HASH.ipk" \
+                   --arg hash "$FILE_HASH" \
+                   --arg eventId "$EVENT_ID" \
+                   '(.modules[] | select(.name == $module) | .versions[0].architectures[$arch]).url = $url |
+                    (.modules[] | select(.name == $module) | .versions[0].architectures[$arch]).hash = ("sha256:" + $hash) |
+                    (.modules[] | select(.name == $module) | .versions[0].architectures[$arch]).eventId = $eventId' \
+                   release.json > "$TMP_FILE"
+                
+                if [ $? -eq 0 ]; then
+                  mv "$TMP_FILE" release.json
+                else
+                  echo "Error updating JSON for $MODULE/$ARCH"
+                  cat "$TMP_FILE"
+                  rm "$TMP_FILE"
+                fi
+              fi
+            fi
+          done
+          
+          # Show the diff
+          echo "Changes to release.json:"
+          diff -u release.json.bak release.json || true
+
+      - name: Commit and Push Changes
+        run: |
+          cd tollgate-os
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          git add release.json
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to release.json, skipping commit"
+          else
+            git commit -m "Update release.json with latest module packages [skip ci]"
+            git push
           fi
