@@ -16,8 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Basic setup steps that don't depend on anything
-
+      
       - name: Test Blossom Upload with Simple File
         run: |
           # Create a simple test file
@@ -52,7 +51,6 @@ jobs:
           else
             echo "Hashes match! File integrity preserved during upload."
           fi
-
 
   build:
     runs-on: ubuntu-latest
@@ -211,7 +209,7 @@ jobs:
       - name: Publish Package NIP-94 Metadata
         id: publish_package
         if: steps.upload_package.outputs.success == 'true'
-        uses: OpenTollGate/nostr-publish-file-metadata-action@main
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
         with:
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
           url: ${{ steps.upload_package.outputs.url }}
@@ -229,7 +227,7 @@ jobs:
       - name: Verify Package NIP-94 Event
         id: verify_package
         if: steps.publish_package.outputs.eventId != ''
-        uses: OpenTollGate/nostr-publish-file-metadata-action/verify@main
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
         with:
           eventId: ${{ steps.publish_package.outputs.eventId }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
