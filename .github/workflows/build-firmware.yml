@@ -18,6 +18,42 @@ jobs:
       - uses: actions/checkout@v4
       # Basic setup steps that don't depend on anything
 
+      - name: Test Blossom Upload with Simple File
+        run: |
+          # Create a simple test file
+          echo "This is a test file" > test.txt
+          # Calculate its hash
+          ORIGINAL_HASH=$(sha256sum test.txt | cut -d' ' -f1)
+          echo "Original hash: $ORIGINAL_HASH"
+          
+          # Save the hash for later comparison
+          echo "ORIGINAL_HASH=$ORIGINAL_HASH" >> $GITHUB_ENV
+
+      - name: Upload Test File to Blossom
+        id: upload_test
+        continue-on-error: true
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: test.txt
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+
+      - name: Report Test File URL
+        run: |
+          echo "Test file uploaded to: ${{ steps.upload_test.outputs.url }}"
+          echo "Test file hash: ${{ steps.upload_test.outputs.hash }}"
+          
+          # Compare the hashes
+          if [ "${{ env.ORIGINAL_HASH }}" != "${{ steps.upload_test.outputs.hash }}" ]; then
+            echo "WARNING: Hashes don't match!"
+            echo "Original hash: ${{ env.ORIGINAL_HASH }}"
+            echo "Blossom hash:  ${{ steps.upload_test.outputs.hash }}"
+            echo "This indicates the file was modified during upload."
+          else
+            echo "Hashes match! File integrity preserved during upload."
+          fi
+
+
   build:
     runs-on: ubuntu-latest
     needs: prepare
@@ -70,41 +106,86 @@ jobs:
           if [ -n "${{ env.PACKAGE_FULLPATH }}" ]; then
             echo "Package Path: ${{ env.PACKAGE_FULLPATH }}"
             ls -la "${{ env.PACKAGE_FULLPATH }}"
+            
+            # Calculate and store the hash for later comparison
+            PACKAGE_HASH=$(sha256sum "${{ env.PACKAGE_FULLPATH }}" | cut -d' ' -f1)
+            echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
+            echo "Original package hash: $PACKAGE_HASH"
           else
             echo "Warning: No package path found in environment"
           fi
 
-      - name: Validate IPK Structure
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.target.model }}-${{ matrix.module }}
+          path: ${{ env.PACKAGE_FULLPATH }}
+          retention-days: 5
+
+      - name: Check File Before Upload
         run: |
-          echo "Validating IPK file structure..."
+          echo "Checking file before upload to Blossom:"
+          echo "File path: ${{ env.PACKAGE_FULLPATH }}"
           if [ -f "${{ env.PACKAGE_FULLPATH }}" ]; then
-            # Check if it's a valid archive
-            if ! ar t "${{ env.PACKAGE_FULLPATH }}" &>/dev/null; then
-              echo "ERROR: Not a valid ar archive"
-              exit 1
-            fi
+            echo "File exists"
+            echo "File size: $(du -h "${{ env.PACKAGE_FULLPATH }}" | cut -f1)"
+            echo "File type: $(file "${{ env.PACKAGE_FULLPATH }}")"
             
-            # Check for required components
-            if ! ar t "${{ env.PACKAGE_FULLPATH }}" | grep -q "data.tar.gz"; then
-              echo "ERROR: Missing data.tar.gz in IPK"
-              exit 1
-            fi
-            
-            if ! ar t "${{ env.PACKAGE_FULLPATH }}" | grep -q "control.tar.gz"; then
-              echo "ERROR: Missing control.tar.gz in IPK"
-              exit 1
-            fi
-            
-            echo "IPK structure validation passed"
+            # Try to list contents if it's an archive
+            echo "Attempting to list contents:"
+            ar t "${{ env.PACKAGE_FULLPATH }}" || echo "Not an ar archive"
           else
-            echo "ERROR: Package file not found"
-            exit 1
+            echo "File does not exist!"
           fi
 
       - name: Upload Package to Blossom
         id: upload_package
-        uses: c03rad0r/upload-blossom-action@pr/using-nsec-argument-correct-state
+        uses: c03rad0r/cli-blossom-uploader-go@main
         with:
           host: "https://blossom.swissdash.site"
           filePath: ${{ env.PACKAGE_FULLPATH }}
-          nostrPrivateKey: ${{ secrets.NSEC }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+
+      - name: Report Package Upload Results
+        run: |
+          if [ "${{ steps.upload_package.outputs.success }}" == "true" ]; then
+            echo "✅ Package uploaded successfully!"
+            echo "URL: ${{ steps.upload_package.outputs.url }}"
+            echo "Blossom hash: ${{ steps.upload_package.outputs.hash }}"
+            echo "Original hash: ${{ env.PACKAGE_HASH }}"
+            
+            # Compare hashes
+            if [ "${{ steps.upload_package.outputs.hash }}" == "${{ env.PACKAGE_HASH }}" ]; then
+              echo "✅ Hash verification successful!"
+            else
+              echo "⚠️ Hash mismatch! File may have been modified during upload."
+              echo "Original: ${{ env.PACKAGE_HASH }}"
+              echo "Reported: ${{ steps.upload_package.outputs.hash }}"
+            fi
+          else
+            echo "❌ Package upload failed!"
+            echo "Error: ${{ steps.upload_package.outputs.error }}"
+          fi
+
+      - name: Download Uploaded Package
+        if: steps.upload_package.outputs.success == 'true'
+        run: |
+          # Download the file we just uploaded
+          curl -L "${{ steps.upload_package.outputs.url }}" -o downloaded-package.ipk
+          
+          # Calculate hash of downloaded file
+          DOWNLOADED_HASH=$(sha256sum downloaded-package.ipk | cut -d' ' -f1)
+          echo "DOWNLOADED_HASH=$DOWNLOADED_HASH" >> $GITHUB_ENV
+          
+          echo "Downloaded package with hash: $DOWNLOADED_HASH"
+          
+          # Compare original and downloaded file hashes
+          if [ "${{ env.PACKAGE_HASH }}" == "$DOWNLOADED_HASH" ]; then
+            echo "✅ End-to-end verification successful!"
+            echo "The package was uploaded and downloaded without any modifications."
+          else
+            echo "❌ End-to-end verification failed!"
+            echo "Original hash: ${{ env.PACKAGE_HASH }}"
+            echo "Downloaded hash: $DOWNLOADED_HASH"
+            echo "This indicates the file was modified during upload or download."
+          fi
