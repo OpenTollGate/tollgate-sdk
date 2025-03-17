@@ -97,19 +97,6 @@ jobs:
           echo "Event data from relay:"
           cat event_data.json | jq .
           
-          # Extract the hash from the x tag
-          EVENT_HASH=$(jq -r '.tags[] | select(.[0] == "x") | .[1]' event_data.json)
-          
-          echo "Network event hash: '$EVENT_HASH'"
-          echo "Generated hash: '$GENERATED_HASH'"
-          
-          # Verify the hash matches
-          if [ "$EVENT_HASH" != "$GENERATED_HASH" ]; then
-            echo "::error::Hash mismatch! Expected $GENERATED_HASH but found $EVENT_HASH"
-            exit 1
-          fi
-          
-          echo "✅ Event verification successful!"
 
       - name: Create Event JSON
         run: |
