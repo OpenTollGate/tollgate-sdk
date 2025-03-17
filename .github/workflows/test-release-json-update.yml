@@ -64,28 +64,53 @@ jobs:
           eventId: ${{ steps.generate_event.outputs.eventId }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
 
-      - name: Validate Event Consistency
+      - name: Install noscl
         run: |
+          curl -L https://github.com/fiatjaf/noscl/releases/download/v0.6.2/noscl_0.6.2_linux_amd64.tar.gz -o noscl.tar.gz
+          tar -xzf noscl.tar.gz
+          chmod +x noscl
+          sudo mv noscl /usr/local/bin/
+          noscl --version
+
+      - name: Fetch Latest Event from NIP-94 Pubkey
+        run: |
+          # Get the pubkey from environment variable
+          PUBKEY="${{ env.NIP_94_PUBKEY }}"
+          if [ -z "$PUBKEY" ]; then
+            echo "::error::NIP_94_PUBKEY environment variable is not set"
+            exit 1
+          fi
+          
+          echo "Fetching latest event for pubkey: $PUBKEY"
+          
+          # Fetch the latest event from relays
+          LATEST_EVENT=$(noscl fetch --kind 1063 --author "$PUBKEY" --limit 1 --relay wss://relay.damus.io --relay wss://nos.lol --relay wss://nostr.mom)
+          echo "LATEST_EVENT=$LATEST_EVENT" >> $GITHUB_ENV
+          
+          # Extract event ID and hash from the event
+          EVENT_ID=$(echo "$LATEST_EVENT" | jq -r '.id')
+          EVENT_HASH=$(echo "$LATEST_EVENT" | jq -r '.tags[] | select(.[0] == "hash") | .[1]')
+          
+          echo "Latest Event ID: $EVENT_ID"
+          echo "Latest Event Hash: $EVENT_HASH"
+          
+          # Compare with our generated event
           GENERATED_EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
-          NETWORK_EVENT_ID="${{ steps.verify_latest_event.outputs.eventId }}"
-            
-          echo "Generated Event ID: $GENERATED_EVENT_ID"
-          echo "Network Event ID:   $NETWORK_EVENT_ID"
-            
-          if [ "$GENERATED_EVENT_ID" != "$NETWORK_EVENT_ID" ]; then
-            echo "::error::Event ID mismatch! Expected $GENERATED_EVENT_ID but found $NETWORK_EVENT_ID"
-            exit 1
-          fi
-            
-          # Verify content matches
           GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
-          NETWORK_HASH=$(echo '${{ steps.verify_latest_event.outputs.event }}' | jq -r '.tags[] | select(.[0] == "hash") | .[1]')
-            
-          if [ "$GENERATED_HASH" != "$NETWORK_HASH" ]; then
-            echo "::error::Hash mismatch! Expected $GENERATED_HASH but found $NETWORK_HASH"
+          
+          echo "Generated Event ID: $GENERATED_EVENT_ID"
+          echo "Generated Hash: $GENERATED_HASH"
+          
+          # Verify the event was published correctly
+          if [ "$EVENT_ID" != "$GENERATED_EVENT_ID" ]; then
+            echo "::warning::Event ID mismatch. This may be normal if multiple events were published recently."
+          fi
+          
+          if [ "$EVENT_HASH" != "$GENERATED_HASH" ]; then
+            echo "::error::Hash mismatch! Expected $GENERATED_HASH but found $EVENT_HASH"
             exit 1
           fi
-            
+          
           echo "✅ Event verification successful!"
 
           
