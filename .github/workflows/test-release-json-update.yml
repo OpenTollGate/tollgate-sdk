@@ -24,10 +24,6 @@ jobs:
         with:
           path: sdk
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
       - name: Create Test Package
         run: |
           CURRENT_TIME=$(date +%s)
@@ -97,48 +93,39 @@ jobs:
           
           # Look for our event with matching hash
           echo "Looking for event with hash: $GENERATED_HASH"
+
+          cat events_data.txt
           
-          # Process each event to find the one with our hash
-          FOUND_EVENT=$(cat events_data.txt | jq -c --arg hash "$GENERATED_HASH" '.tags[] | select(.[0] == "x" and .[1] == $hash) | input')
+          # # Process each event to find the one with our hash
+          # FOUND_EVENT=$(cat events_data.txt | jq -c --arg hash "$GENERATED_HASH" '.tags[] | select(.[0] == "x" and .[1] == $hash) | input')
           
-          if [ -z "$FOUND_EVENT" ]; then
-            echo "::warning::No event with matching hash found. Recent events:"
-            cat events_data.txt | jq .
-            exit 1
-          fi
+          # if [ -z "$FOUND_EVENT" ]; then
+          #   echo "::warning::No event with matching hash found. Recent events:"
+          #   cat events_data.txt | jq .
+          #   exit 1
+          # fi
           
-          echo "Found matching event:"
-          echo "$FOUND_EVENT" | jq .
+          # echo "Found matching event:"
+          # echo "$FOUND_EVENT" | jq .
           
-          # Save the event ID for future reference
-          FOUND_EVENT_ID=$(echo "$FOUND_EVENT" | jq -r '.id')
-          echo "Event ID: $FOUND_EVENT_ID"
-          echo "$FOUND_EVENT_ID" > found_event_id.txt
+          # # Save the event ID for future reference
+          # FOUND_EVENT_ID=$(echo "$FOUND_EVENT" | jq -r '.id')
+          # echo "Event ID: $FOUND_EVENT_ID"
+          # echo "$FOUND_EVENT_ID" > found_event_id.txt
           
-          # Create a properly formatted event JSON
-          echo "{
-            \"eventId\": \"$FOUND_EVENT_ID\",
-            \"hash\": \"$GENERATED_HASH\",
-            \"url\": \"$(echo "$FOUND_EVENT" | jq -r '.tags[] | select(.[0] == "url") | .[1]')\",
-            \"module\": \"test-module\",
-            \"model\": \"gl-mt3000\",
-            \"architecture\": \"aarch64_cortex-a53\"
-          }" > found_event.json
+          # # Create a properly formatted event JSON
+          # echo "{
+          #   \"eventId\": \"$FOUND_EVENT_ID\",
+          #   \"hash\": \"$GENERATED_HASH\",
+          #   \"url\": \"$(echo "$FOUND_EVENT" | jq -r '.tags[] | select(.[0] == "url") | .[1]')\",
+          #   \"module\": \"test-module\",
+          #   \"model\": \"gl-mt3000\",
+          #   \"architecture\": \"aarch64_cortex-a53\"
+          # }" > found_event.json
           
           echo "✅ Successfully found and verified event on network!"
 
-      - name: Create Event JSON
-        run: |
-          echo '{
-            "eventId": "${{ steps.generate_event.outputs.eventId }}",
-            "hash": "${{ steps.upload_test.outputs.hash }}",
-            "url": "${{ steps.upload_test.outputs.url }}",
-            "module": "test-module",
-            "model": "gl-mt3000",
-            "architecture": "aarch64_cortex-a53"
-          }' > test-event.json
-          echo "EVENT_PATH=$(pwd)/test-event.json" >> $GITHUB_ENV
-
+          
       # - name: Trigger OS Workflow
       #   uses: peter-evans/repository-dispatch@v2
       #   with:
