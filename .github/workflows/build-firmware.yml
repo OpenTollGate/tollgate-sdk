@@ -271,10 +271,19 @@ jobs:
         run: |
           find artifacts -type f | sort
 
-      - name: Trigger update-release-json Workflow
+      - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
-          event-type: update-release-json
-          client-payload: '{"run_id": "${{ github.run_id }}", "repository": "${{ github.repository }}"}'
+          event-type: build-firmware
+          client-payload: |
+            {
+              "sdk_run_id": "${{ github.run_id }}",
+              "branch": "main",
+              "artifacts": [
+                "package-gl-ar300m-tollgate-module-relay-go",
+                "package-gl-mt3000-tollgate-module-relay-go",
+                "package-gl-mt6000-tollgate-module-relay-go"
+              ]
+            }
