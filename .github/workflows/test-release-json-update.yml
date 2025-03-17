@@ -59,7 +59,7 @@ jobs:
                 "model": "${MODEL#gl-}",
                 "architecture": "${ARCH}"
               }
-            EOF
+EOF
             done
           done
           
