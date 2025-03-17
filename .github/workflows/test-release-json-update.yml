@@ -22,9 +22,23 @@ jobs:
       - name: Generate Dummy NIP-94 Events
         id: generate_events
         run: |
-          # Parse input parameters
-          IFS=',' read -ra MODULES <<< "${{ github.event.inputs.modules }}"
-          IFS=',' read -ra MODELS <<< "${{ github.event.inputs.models }}"
+          # Parse input parameters with fallbacks
+          MODULES_STR="${{ github.event.inputs.modules || 'relay,valve,whoami' }}"
+          MODELS_STR="${{ github.event.inputs.models || 'gl-ar300m,gl-mt3000,gl-mt6000' }}"
+          
+          # Debug input values
+          echo "Raw modules input: $MODULES_STR"
+          echo "Raw models input: $MODELS_STR"
+          
+          # Convert to arrays
+          IFS=',' read -ra MODULES <<< "$MODULES_STR"
+          IFS=',' read -ra MODELS <<< "$MODELS_STR"
+          
+          # Debug arrays
+          echo "Modules array: ${MODULES[@]}"
+          echo "Models array: ${MODELS[@]}"
+          echo "Number of modules: ${#MODULES[@]}"
+          echo "Number of models: ${#MODELS[@]}"
           
           # Create events JSON structure
           echo "{\"events\": [" > events.json
