@@ -16,85 +16,83 @@ on:
         default: 'gl-ar300m,gl-mt3000,gl-mt6000'
 
 jobs:
-  generate-dummy-events:
+  generate-real-events:
     runs-on: ubuntu-latest
     steps:
-      - name: Generate Dummy NIP-94 Events
-        id: generate_events
+      - name: Checkout SDK
+        uses: actions/checkout@v4
+        with:
+          path: sdk
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build Test Package
         run: |
-          # Parse input parameters with fallbacks
-          MODULES_STR="${{ github.event.inputs.modules || 'relay,valve,whoami' }}"
-          MODELS_STR="${{ github.event.inputs.models || 'gl-ar300m,gl-mt3000,gl-mt6000' }}"
-          
-          # Debug input values
-          echo "Raw modules input: $MODULES_STR"
-          echo "Raw models input: $MODELS_STR"
-          
-          # Convert to arrays
-          IFS=',' read -ra MODULES <<< "$MODULES_STR"
-          IFS=',' read -ra MODELS <<< "$MODELS_STR"
-          
-          # Debug arrays
-          echo "Modules array: ${MODULES[@]}"
-          echo "Models array: ${MODELS[@]}"
-          echo "Number of modules: ${#MODULES[@]}"
-          echo "Number of models: ${#MODELS[@]}"
-          
-          # Create events JSON structure
-          echo "{\"events\": [" > events.json
-          
-          FIRST=true
-          for MODULE in "${MODULES[@]}"; do
-            for MODEL in "${MODELS[@]}"; do
-              # Map model to architecture
-              if [[ "$MODEL" == "gl-ar300m" ]]; then
-                ARCH="mipsel_24kc"
-              else
-                ARCH="aarch64_cortex-a53"
-              fi
-              
-              # Generate dummy hash (unique per module/model)
-              HASH=$(echo "$MODULE-$MODEL-$(date +%s)" | sha256sum | cut -d' ' -f1)
-              
-              # Add comma if not first item
-              if [ "$FIRST" = "true" ]; then
-                FIRST=false
-              else
-                echo "," >> events.json
-              fi
-              
-              # Create dummy event entry - using echo instead of heredoc
-              echo "{" >> events.json
-              echo "  \"eventId\": \"dummy_event_id_${MODULE}_${MODEL}_$(date +%s)\"," >> events.json
-              echo "  \"hash\": \"${HASH}\"," >> events.json
-              echo "  \"url\": \"https://blossom.swissdash.site/${HASH}.ipk\"," >> events.json
-              echo "  \"module\": \"${MODULE}\"," >> events.json
-              echo "  \"model\": \"${MODEL#gl-}\"," >> events.json
-              echo "  \"architecture\": \"${ARCH}\"" >> events.json
-              echo "}" >> events.json
-            done
-          done
-          
-          echo "]}" >> events.json
-          
-          # Store event data for next step
-          EVENT_DATA=$(cat events.json)
-          echo "event_data<<EOF" >> $GITHUB_ENV
-          echo "$EVENT_DATA" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          
-          # Display the generated events
-          echo "Generated dummy events:"
-          cat events.json | jq .
+          cd sdk
+          go build -o test-module ./cmd/test-module/main.go
+          mkdir -p test-package
+          cp test-module test-package/
+          tar czvf test-package.tar.gz test-package/
+          echo "PACKAGE_FULLPATH=$(pwd)/test-package.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload Test Package to Blossom
+        id: upload_test
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+
+      - name: Generate NIP-94 Event
+        id: generate_event
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          content: "Test Module Package"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE_FULLPATH }}")
+          architecture: "aarch64_cortex-a53"
+          model: "gl-mt3000"
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Verify NIP-94 Event
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
+        with:
+          eventId: ${{ steps.generate_event.outputs.eventId }}
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+
+      - name: Create Event JSON
+        run: |
+          echo '{
+            "eventId": "${{ steps.generate_event.outputs.eventId }}",
+            "hash": "${{ steps.upload_test.outputs.hash }}",
+            "url": "${{ steps.upload_test.outputs.url }}",
+            "module": "test-module",
+            "model": "gl-mt3000",
+            "architecture": "aarch64_cortex-a53"
+          }' > test-event.json
+          echo "EVENT_PATH=$(pwd)/test-event.json" >> $GITHUB_ENV
 
       - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
-          event-type: develop
+          event-type: update-release-json
           client-payload: |
             {
-              "nip94_events": ${{ env.event_data }},
-              "branch": "develop"
+              "nip94_events": {
+                "events": [
+                  $(cat ${{ env.EVENT_PATH }})
+                ]
+              },
+              "branch": "develop",
+              "is_test": true
             }
