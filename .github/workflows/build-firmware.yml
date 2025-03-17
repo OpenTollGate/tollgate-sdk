@@ -304,16 +304,3 @@ jobs:
               "branch": "develop"
             }
 
-name: Test Release JSON Update
-
-on:
-  workflow_dispatch:
-    inputs:
-      modules:
-        description: 'Comma-separated list of modules to include'
-        required: false
-        default: 'relay,valve,whoami'
-      models:
-        description: 'Comma-separated list of models to include'
-        required: false
-        default: 'gl-ar300m,gl-mt3000,gl-mt6000'
