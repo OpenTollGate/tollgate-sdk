@@ -95,7 +95,6 @@ jobs:
           event-type: develop
           client-payload: |
             {
-              "nip94_events": ${{ toJSON(env.event_data) }},
-              "branch": "develop",
-              "is_test": true
+              "nip94_events": ${{ env.event_data }},
+              "branch": "develop"
             }
