@@ -64,38 +64,38 @@ jobs:
           eventId: ${{ steps.generate_event.outputs.eventId }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
 
-      - name: Install noscl
+      - name: Install nak
         run: |
-          sudo wget https://github.com/fiatjaf/noscl/releases/download/v0.6.0/noscl -O /usr/local/bin/noscl
-          sudo chmod +x /usr/local/bin/noscl
-          noscl --version
-
+          sudo wget https://github.com/fiatjaf/nak/releases/download/v0.12.4/nak-v0.12.4-linux-amd64 -O /usr/local/bin/nak
+          sudo chmod +x /usr/local/bin/nak
+          
       - name: Verify Event on Network
         run: |
-          # Get the pubkey from GitHub secrets
           PUBKEY="${{ secrets.NIP_94_PUBKEY }}"
-          if [ -z "$PUBKEY" ]; then
-            echo "::error::NIP_94_PUBKEY secret is not set"
-            exit 1
-          fi
-          
-          echo "Fetching event by ID from relays..."
-          GENERATED_EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
+          # Use our generated event ID directly
+          EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
           GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
           
-          echo "Generated Event ID: $GENERATED_EVENT_ID"
+          echo "Verifying event ID: $EVENT_ID"
           
-          # Check if event exists directly by ID
-          EVENT_JSON=$(noscl event "$GENERATED_EVENT_ID" --relay wss://relay.damus.io --relay wss://nos.lol)
+          # Query the event directly from relay
+          echo "Fetching from relay..."
+          EVENT_JSON=$(nak req --id "$EVENT_ID" wss://relay.damus.io 2>/dev/null)
+          
+          # Check if event was found
           if [ -z "$EVENT_JSON" ]; then
-            echo "::error::Failed to retrieve event by ID"
+            echo "::error::Event not found on relay"
             exit 1
           fi
           
-          # Extract hash from the event
-          EVENT_HASH=$(echo "$EVENT_JSON" | jq -r '.tags[] | select(.[0] == "hash") | .[1]')
+          echo "Event found on network:"
+          echo "$EVENT_JSON" | jq .
           
-          echo "Retrieved event with hash: $EVENT_HASH"
+          # Extract the hash from the x tag
+          EVENT_HASH=$(echo "$EVENT_JSON" | jq -r '.tags[] | select(.[0] == "x") | .[1]')
+          
+          echo "Network event hash: $EVENT_HASH"
+          echo "Generated hash: $GENERATED_HASH"
           
           # Verify the hash matches
           if [ "$EVENT_HASH" != "$GENERATED_HASH" ]; then
