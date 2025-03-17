@@ -28,15 +28,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-
-      - name: Build Test Package
+      - name: Create Test Package
         run: |
-          cd sdk
-          go build -o test-module ./cmd/test-module/main.go
-          mkdir -p test-package
-          cp test-module test-package/
-          tar czvf test-package.tar.gz test-package/
-          echo "PACKAGE_FULLPATH=$(pwd)/test-package.tar.gz" >> $GITHUB_ENV
+          CURRENT_TIME=$(date +%s)
+          echo "This is a test package created at ${CURRENT_TIME}" > test-package-${CURRENT_TIME}.ipk
+          echo "PACKAGE_FULLPATH=$(pwd)/test-package-${CURRENT_TIME}.ipk" >> $GITHUB_ENV
 
       - name: Upload Test Package to Blossom
         id: upload_test
