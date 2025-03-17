@@ -66,13 +66,11 @@ jobs:
 
       - name: Install noscl
         run: |
-          curl -L https://github.com/fiatjaf/noscl/releases/download/v0.6.2/noscl_0.6.2_linux_amd64.tar.gz -o noscl.tar.gz
-          tar -xzf noscl.tar.gz
-          chmod +x noscl
-          sudo mv noscl /usr/local/bin/
+          wget https://github.com/fiatjaf/noscl/releases/download/v0.6.0/noscl -O /usr/local/bin/noscl
+          chmod +x /usr/local/bin/noscl
           noscl --version
 
-      - name: Fetch Latest Event from NIP-94 Pubkey
+      - name: Verify Event on Network
         run: |
           # Get the pubkey from environment variable
           PUBKEY="${{ env.NIP_94_PUBKEY }}"
@@ -113,7 +111,6 @@ jobs:
           
           echo "✅ Event verification successful!"
 
-          
       - name: Create Event JSON
         run: |
           echo '{
