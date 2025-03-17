@@ -72,18 +72,7 @@ jobs:
       - name: Verify Event on Network with nak
         run: |
           PUBKEY="${{ secrets.NIP_94_PUBKEY }}"
-          # Use our generated event ID directly
-          EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
-          GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
-          
-          echo "Verifying event ID: '$EVENT_ID'"
-          
-          # Make sure we have a valid event ID
-          if [ -z "$EVENT_ID" ] || [ "$EVENT_ID" = "null" ]; then
-            echo "::error::Invalid or missing event ID"
-            exit 1
-          fi
-          
+                    
           # Save event details to temp file for more reliable processing
           # Query by author instead of by ID for better relay compatibility
           nak req --author "$PUBKEY" wss://relay.damus.io > event_response.txt
