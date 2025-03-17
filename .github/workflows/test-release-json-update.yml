@@ -68,7 +68,6 @@ jobs:
         run: |
           wget https://github.com/fiatjaf/noscl/releases/download/v0.6.0/noscl -O /usr/local/bin/noscl
           chmod +x /usr/local/bin/noscl
-          noscl --version
 
       - name: Verify Event on Network
         run: |
