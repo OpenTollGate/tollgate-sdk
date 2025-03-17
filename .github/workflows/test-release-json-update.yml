@@ -77,7 +77,9 @@ jobs:
           GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
           
           echo "Verifying event ID: $EVENT_ID"
-          
+
+          nak req --id "$EVENT_ID" wss://relay.damus.io
+
           # Query the event directly from relay
           echo "Fetching from relay..."
           EVENT_JSON=$(nak req --id "$EVENT_ID" wss://relay.damus.io 2>/dev/null)
