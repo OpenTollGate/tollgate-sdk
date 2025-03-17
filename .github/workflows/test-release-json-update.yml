@@ -71,11 +71,19 @@ jobs:
 
       - name: Verify Event on Network with nak
         run: |
+          # Get the pubkey from secrets
           PUBKEY="${{ secrets.NIP_94_PUBKEY }}"
-                    
-          # Save event details to temp file for more reliable processing
-          # Query by author instead of by ID for better relay compatibility
-          nak req --author "$PUBKEY" wss://relay.damus.io > event_response.txt
+          GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
+          
+          if [ -z "$PUBKEY" ]; then
+            echo "::error::NIP_94_PUBKEY secret is not set"
+            exit 1
+          fi
+          
+          echo "Fetching recent NIP-94 events for pubkey: $PUBKEY"
+          
+          # Query events by author and kind (1063 for NIP-94)
+          nak req -a "$PUBKEY" -k 1063 --limit 10 wss://relay.damus.io > event_response.txt
           
           # Check for errors in the response
           if grep -q "ERROR" event_response.txt; then
@@ -84,19 +92,40 @@ jobs:
             exit 1
           fi
           
-          # Extract the actual JSON event data, filtering for our specific event ID
-          cat event_response.txt | grep -v "connecting to" | grep -v "NOTICE" | jq -c --arg id "$EVENT_ID" 'select(.id == $id)' > event_data.json
+          # Extract only the event data (removing connection messages)
+          cat event_response.txt | grep -v "connecting to" | grep -v "NOTICE" > events_data.txt
           
-          # Validate we have JSON data
-          if ! jq empty event_data.json 2>/dev/null; then
-            echo "::error::Event not found or invalid JSON response from relay"
-            cat event_data.json
+          # Look for our event with matching hash
+          echo "Looking for event with hash: $GENERATED_HASH"
+          
+          # Process each event to find the one with our hash
+          FOUND_EVENT=$(cat events_data.txt | jq -c --arg hash "$GENERATED_HASH" '.tags[] | select(.[0] == "x" and .[1] == $hash) | input')
+          
+          if [ -z "$FOUND_EVENT" ]; then
+            echo "::warning::No event with matching hash found. Recent events:"
+            cat events_data.txt | jq .
             exit 1
           fi
           
-          echo "Event data from relay:"
-          cat event_data.json | jq .
+          echo "Found matching event:"
+          echo "$FOUND_EVENT" | jq .
           
+          # Save the event ID for future reference
+          FOUND_EVENT_ID=$(echo "$FOUND_EVENT" | jq -r '.id')
+          echo "Event ID: $FOUND_EVENT_ID"
+          echo "$FOUND_EVENT_ID" > found_event_id.txt
+          
+          # Create a properly formatted event JSON
+          echo "{
+            \"eventId\": \"$FOUND_EVENT_ID\",
+            \"hash\": \"$GENERATED_HASH\",
+            \"url\": \"$(echo "$FOUND_EVENT" | jq -r '.tags[] | select(.[0] == "url") | .[1]')\",
+            \"module\": \"test-module\",
+            \"model\": \"gl-mt3000\",
+            \"architecture\": \"aarch64_cortex-a53\"
+          }" > found_event.json
+          
+          echo "✅ Successfully found and verified event on network!"
 
       - name: Create Event JSON
         run: |
