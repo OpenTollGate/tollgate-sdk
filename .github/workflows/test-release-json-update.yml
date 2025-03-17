@@ -46,6 +46,7 @@ jobs:
           url: ${{ steps.upload_test.outputs.url }}
           mimeType: application/octet-stream
           fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: "test-package-${CURRENT_TIME}.ipk"
           content: "Test Module Package"
           nsec: ${{ secrets.NSEC }}
           size: $(stat -c%s "${{ env.PACKAGE_FULLPATH }}")
