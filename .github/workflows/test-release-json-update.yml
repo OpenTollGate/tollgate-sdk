@@ -66,9 +66,10 @@ jobs:
 
       - name: Install noscl
         run: |
-          wget https://github.com/fiatjaf/noscl/releases/download/v0.6.0/noscl -O /usr/local/bin/noscl
-          chmod +x /usr/local/bin/noscl
-          
+          sudo wget https://github.com/fiatjaf/noscl/releases/download/v0.6.0/noscl -O /usr/local/bin/noscl
+          sudo chmod +x /usr/local/bin/noscl
+          noscl --version
+
       - name: Verify Event on Network
         run: |
           # Get the pubkey from GitHub secrets
@@ -78,36 +79,31 @@ jobs:
             exit 1
           fi
           
-          echo "Fetching latest event for pubkey: $PUBKEY"
+          echo "Fetching event by ID from relays..."
+          GENERATED_EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
+          GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
           
-          # Create a temporary config file for noscl
-          mkdir -p ~/.config/noscl
-          echo '{"relays":["wss://relay.damus.io","wss://nos.lol","wss://nostr.mom"]}' > ~/.config/noscl/config.json
+          echo "Generated Event ID: $GENERATED_EVENT_ID"
           
-          # Fetch the latest events for this pubkey (kind 1063 is NIP-94)
-          echo "Fetching latest events for pubkey: $PUBKEY"
-          LATEST_EVENTS=$(noscl query --kinds 1063 --authors "$PUBKEY" --limit 5 2>/dev/null || echo '{"error": "No events found"}')
-          
-          # Print the events to the command line
-          echo "Latest events:"
-          echo "$LATEST_EVENTS" | jq . || echo "$LATEST_EVENTS"
-          
-          # Check if we got any events
-          if [[ "$LATEST_EVENTS" == *"error"* ]]; then
-            echo "::warning::Could not find any events from this pubkey on the network."
-          else
-            echo "✅ Successfully fetched latest events from the network!"
-            
-            # Also verify our specific event is there
-            EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
-            echo "Checking if our event ID $EVENT_ID is in the results..."
-            
-            if [[ "$LATEST_EVENTS" == *"$EVENT_ID"* ]]; then
-              echo "✅ Our specific event was found in the latest events!"
-            else
-              echo "::warning::Our specific event was not found in the latest events. It may not have propagated yet."
-            fi
+          # Check if event exists directly by ID
+          EVENT_JSON=$(noscl event "$GENERATED_EVENT_ID" --relay wss://relay.damus.io --relay wss://nos.lol)
+          if [ -z "$EVENT_JSON" ]; then
+            echo "::error::Failed to retrieve event by ID"
+            exit 1
           fi
+          
+          # Extract hash from the event
+          EVENT_HASH=$(echo "$EVENT_JSON" | jq -r '.tags[] | select(.[0] == "hash") | .[1]')
+          
+          echo "Retrieved event with hash: $EVENT_HASH"
+          
+          # Verify the hash matches
+          if [ "$EVENT_HASH" != "$GENERATED_HASH" ]; then
+            echo "::error::Hash mismatch! Expected $GENERATED_HASH but found $EVENT_HASH"
+            exit 1
+          fi
+          
+          echo "✅ Event verification successful!"
 
       - name: Create Event JSON
         run: |
