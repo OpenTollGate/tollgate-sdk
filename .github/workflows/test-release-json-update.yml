@@ -64,6 +64,31 @@ jobs:
           eventId: ${{ steps.generate_event.outputs.eventId }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
 
+      - name: Validate Event Consistency
+        run: |
+          GENERATED_EVENT_ID="${{ steps.generate_event.outputs.eventId }}"
+          NETWORK_EVENT_ID="${{ steps.verify_latest_event.outputs.eventId }}"
+            
+          echo "Generated Event ID: $GENERATED_EVENT_ID"
+          echo "Network Event ID:   $NETWORK_EVENT_ID"
+            
+          if [ "$GENERATED_EVENT_ID" != "$NETWORK_EVENT_ID" ]; then
+            echo "::error::Event ID mismatch! Expected $GENERATED_EVENT_ID but found $NETWORK_EVENT_ID"
+            exit 1
+          fi
+            
+          # Verify content matches
+          GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
+          NETWORK_HASH=$(echo '${{ steps.verify_latest_event.outputs.event }}' | jq -r '.tags[] | select(.[0] == "hash") | .[1]')
+            
+          if [ "$GENERATED_HASH" != "$NETWORK_HASH" ]; then
+            echo "::error::Hash mismatch! Expected $GENERATED_HASH but found $NETWORK_HASH"
+            exit 1
+          fi
+            
+          echo "✅ Event verification successful!"
+
+          
       - name: Create Event JSON
         run: |
           echo '{
@@ -76,19 +101,19 @@ jobs:
           }' > test-event.json
           echo "EVENT_PATH=$(pwd)/test-event.json" >> $GITHUB_ENV
 
-      - name: Trigger OS Workflow
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          repository: OpenTollGate/tollgate-os
-          event-type: update-release-json
-          client-payload: |
-            {
-              "nip94_events": {
-                "events": [
-                  $(cat ${{ env.EVENT_PATH }})
-                ]
-              },
-              "branch": "develop",
-              "is_test": true
-            }
+      # - name: Trigger OS Workflow
+      #   uses: peter-evans/repository-dispatch@v2
+      #   with:
+      #     token: ${{ secrets.REPO_ACCESS_TOKEN }}
+      #     repository: OpenTollGate/tollgate-os
+      #     event-type: update-release-json
+      #     client-payload: |
+      #       {
+      #         "nip94_events": {
+      #           "events": [
+      #             $(cat ${{ env.EVENT_PATH }})
+      #           ]
+      #         },
+      #         "branch": "develop",
+      #         "is_test": true
+      #       }
