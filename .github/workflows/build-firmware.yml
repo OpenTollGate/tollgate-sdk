@@ -276,11 +276,11 @@ jobs:
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
-          event-type: build-firmware
+          event-type: update-release-json
           client-payload: |
             {
               "sdk_run_id": "${{ github.run_id }}",
-              "branch": "main",
+              "branch": "develop",
               "artifacts": [
                 "package-gl-ar300m-tollgate-module-relay-go",
                 "package-gl-mt3000-tollgate-module-relay-go",
