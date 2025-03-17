@@ -85,21 +85,22 @@ jobs:
           fi
           
           # Save event details to temp file for more reliable processing
-          nak req --id "$EVENT_ID" wss://relay.damus.io > event_response.txt
+          # Query by author instead of by ID for better relay compatibility
+          nak req --author "$PUBKEY" wss://relay.damus.io > event_response.txt
           
           # Check for errors in the response
           if grep -q "ERROR" event_response.txt; then
-            echo "::error::Error retrieving event from relay:"
+            echo "::error::Error retrieving events from relay:"
             cat event_response.txt
             exit 1
           fi
           
-          # Extract the actual JSON event data
-          cat event_response.txt | grep -v "connecting to" | grep -v "NOTICE" > event_data.json
+          # Extract the actual JSON event data, filtering for our specific event ID
+          cat event_response.txt | grep -v "connecting to" | grep -v "NOTICE" | jq -c --arg id "$EVENT_ID" 'select(.id == $id)' > event_data.json
           
           # Validate we have JSON data
           if ! jq empty event_data.json 2>/dev/null; then
-            echo "::error::Invalid JSON response from relay"
+            echo "::error::Event not found or invalid JSON response from relay"
             cat event_data.json
             exit 1
           fi
