@@ -49,17 +49,15 @@ jobs:
                 echo "," >> events.json
               fi
               
-              # Create dummy event entry
-              cat <<EOF >> events.json
-              {
-                "eventId": "dummy_event_id_${MODULE}_${MODEL}_$(date +%s)",
-                "hash": "${HASH}",
-                "url": "https://blossom.swissdash.site/${HASH}.ipk",
-                "module": "${MODULE}",
-                "model": "${MODEL#gl-}",
-                "architecture": "${ARCH}"
-              }
-EOF
+              # Create dummy event entry - using echo instead of heredoc
+              echo "{" >> events.json
+              echo "  \"eventId\": \"dummy_event_id_${MODULE}_${MODEL}_$(date +%s)\"," >> events.json
+              echo "  \"hash\": \"${HASH}\"," >> events.json
+              echo "  \"url\": \"https://blossom.swissdash.site/${HASH}.ipk\"," >> events.json
+              echo "  \"module\": \"${MODULE}\"," >> events.json
+              echo "  \"model\": \"${MODEL#gl-}\"," >> events.json
+              echo "  \"architecture\": \"${ARCH}\"" >> events.json
+              echo "}" >> events.json
             done
           done
           
