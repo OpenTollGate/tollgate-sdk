@@ -267,23 +267,39 @@ jobs:
         with:
           path: artifacts
 
-      - name: List Downloaded Artifacts
+      - name: Collect NIP-94 Event Data
+        id: collect_events
         run: |
-          find artifacts -type f | sort
+          # Create a JSON file with all event data
+          echo "{\"events\": [" > events.json
+          
+          # Find all event JSON files and combine them
+          FIRST=true
+          for EVENT_FILE in $(find artifacts -name "*-event.json"); do
+            if [ "$FIRST" = "true" ]; then
+              FIRST=false
+            else
+              echo "," >> events.json
+            fi
+            cat $EVENT_FILE >> events.json
+          done
+          
+          echo "]}" >> events.json
+          
+          # Store the event data for the next step
+          EVENT_DATA=$(cat events.json)
+          echo "event_data<<EOF" >> $GITHUB_ENV
+          echo "$EVENT_DATA" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
-          event-type: update-release-json
+          event-type: develop
           client-payload: |
             {
-              "sdk_run_id": "${{ github.run_id }}",
-              "branch": "develop",
-              "artifacts": [
-                "package-gl-ar300m-tollgate-module-relay-go",
-                "package-gl-mt3000-tollgate-module-relay-go",
-                "package-gl-mt6000-tollgate-module-relay-go"
-              ]
+              "nip94_events": ${{ env.event_data }},
+              "branch": "develop"
             }
