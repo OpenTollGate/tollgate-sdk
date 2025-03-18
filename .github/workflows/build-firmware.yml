@@ -216,6 +216,7 @@ jobs:
           mimeType: application/octet-stream
           fileHash: ${{ steps.upload_package.outputs.hash }}
           originalHash: ${{ env.PACKAGE_HASH }}
+          filename: ${{ env.MODULE_NAME }}-${{ matrix.target.model }}-${{ env.ARCH }}.ipk
           content: "TollGate Module Package: ${{ env.MODULE_NAME }} for ${{ matrix.target.model }}"
           nsec: ${{ secrets.NSEC }}
           size: ${{ env.FILE_SIZE }}
@@ -232,65 +233,65 @@ jobs:
           eventId: ${{ steps.publish_package.outputs.eventId }}
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
 
-      - name: Create Event JSON File
-        if: steps.publish_package.outputs.eventId != ''
-        run: |
-          # Create a JSON file with the event information
-          echo '{
-            "eventId": "${{ steps.publish_package.outputs.eventId }}",
-            "hash": "${{ steps.upload_package.outputs.hash }}",
-            "url": "${{ steps.upload_package.outputs.url }}",
-            "module": "${{ env.MODULE_NAME }}",
-            "model": "${{ matrix.target.model }}",
-            "architecture": "${{ env.ARCH }}"
-          }' > event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json
+  #     - name: Create Event JSON File
+  #       if: steps.publish_package.outputs.eventId != ''
+  #       run: |
+  #         # Create a JSON file with the event information
+  #         echo '{
+  #           "eventId": "${{ steps.publish_package.outputs.eventId }}",
+  #           "hash": "${{ steps.upload_package.outputs.hash }}",
+  #           "url": "${{ steps.upload_package.outputs.url }}",
+  #           "module": "${{ env.MODULE_NAME }}",
+  #           "model": "${{ matrix.target.model }}",
+  #           "architecture": "${{ env.ARCH }}"
+  #         }' > event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json
           
-          # Upload the event file as an artifact
-          mkdir -p event-artifacts
-          cp event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json event-artifacts/
+  #         # Upload the event file as an artifact
+  #         mkdir -p event-artifacts
+  #         cp event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json event-artifacts/
 
-      - name: Upload Event Artifact
-        if: steps.publish_package.outputs.eventId != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.MODULE_NAME }}-${{ matrix.target.model }}-event
-          path: event-artifacts/
-          retention-days: 5
+  #     - name: Upload Event Artifact
+  #       if: steps.publish_package.outputs.eventId != ''
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ${{ env.MODULE_NAME }}-${{ matrix.target.model }}-event
+  #         path: event-artifacts/
+  #         retention-days: 5
 
-  trigger-release-update:
-    runs-on: ubuntu-latest
-    needs: build
-    if: success()
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+  # trigger-release-update:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: success()
+  #   steps:
+  #     - name: Download All Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: artifacts
 
-      - name: Collect NIP-94 Event Data
-        id: collect_events
-        run: |
-          # Create a JSON file with all event data
-          echo "{\"events\": [" > events.json
+  #     - name: Collect NIP-94 Event Data
+  #       id: collect_events
+  #       run: |
+  #         # Create a JSON file with all event data
+  #         echo "{\"events\": [" > events.json
           
-          # Find all event JSON files and combine them
-          FIRST=true
-          for EVENT_FILE in $(find artifacts -name "*-event.json"); do
-            if [ "$FIRST" = "true" ]; then
-              FIRST=false
-            else
-              echo "," >> events.json
-            fi
-            cat $EVENT_FILE >> events.json
-          done
+  #         # Find all event JSON files and combine them
+  #         FIRST=true
+  #         for EVENT_FILE in $(find artifacts -name "*-event.json"); do
+  #           if [ "$FIRST" = "true" ]; then
+  #             FIRST=false
+  #           else
+  #             echo "," >> events.json
+  #           fi
+  #           cat $EVENT_FILE >> events.json
+  #         done
           
-          echo "]}" >> events.json
+  #         echo "]}" >> events.json
           
-          # Store the event data for the next step
-          EVENT_DATA=$(cat events.json)
-          echo "event_data<<EOF" >> $GITHUB_ENV
-          echo "$EVENT_DATA" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+  #         # Store the event data for the next step
+  #         EVENT_DATA=$(cat events.json)
+  #         echo "event_data<<EOF" >> $GITHUB_ENV
+  #         echo "$EVENT_DATA" >> $GITHUB_ENV
+  #         echo "EOF" >> $GITHUB_ENV
 
       - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
