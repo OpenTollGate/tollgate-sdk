@@ -90,39 +90,39 @@ jobs:
           ls -la .
           ls -la prebuilt || echo "Prebuilt directory is empty"
 
-      - name: Setup Build Environment
-        shell: bash
-        run: |
-          # Check if the prebuilt directory exists and contains the main golang package (not just docs)
-          if [ -d "prebuilt" ] && [ -n "$(find prebuilt -name "golang_*.ipk" 2>/dev/null)" ]; then
-            echo "Using prebuilt golang package from prebuilt directory"
-            mkdir -p "${SDK_PATH}/bin/packages/${PLATFORM}"
+      # - name: Setup Build Environment
+      #   shell: bash
+      #   run: |
+      #     # Check if the prebuilt directory exists and contains the main golang package (not just docs)
+      #     if [ -d "prebuilt" ] && [ -n "$(find prebuilt -name "golang_*.ipk" 2>/dev/null)" ]; then
+      #       echo "Using prebuilt golang package from prebuilt directory"
+      #       mkdir -p "${SDK_PATH}/bin/packages/${PLATFORM}"
             
-            # Find the main golang IPK file in the prebuilt directory (note the underscore)
-            GOLANG_IPK=$(find "prebuilt" -name "golang_*.ipk" | head -1)
+      #       # Find the main golang IPK file in the prebuilt directory (note the underscore)
+      #       GOLANG_IPK=$(find "prebuilt" -name "golang_*.ipk" | head -1)
             
-            if [ -z "$GOLANG_IPK" ]; then
-              echo "Main golang compiler package not found, looking for any golang package"
-              GOLANG_IPK=$(find "prebuilt" -name "golang*.ipk" | head -1)
-            fi
+      #       if [ -z "$GOLANG_IPK" ]; then
+      #         echo "Main golang compiler package not found, looking for any golang package"
+      #         GOLANG_IPK=$(find "prebuilt" -name "golang*.ipk" | head -1)
+      #       fi
             
-            if [ -n "$GOLANG_IPK" ] && [ -f "$GOLANG_IPK" ]; then
-              echo "Found golang package: $GOLANG_IPK"
-              cp "$GOLANG_IPK" "${SDK_PATH}/bin/packages/${PLATFORM}/"
-              echo "Copied golang package to SDK"
+      #       if [ -n "$GOLANG_IPK" ] && [ -f "$GOLANG_IPK" ]; then
+      #         echo "Found golang package: $GOLANG_IPK"
+      #         cp "$GOLANG_IPK" "${SDK_PATH}/bin/packages/${PLATFORM}/"
+      #         echo "Copied golang package to SDK"
               
-              # Install the prebuilt package
-              cd "${SDK_PATH}"
-              ./scripts/feeds update -a
-              ./scripts/feeds install golang
-            else
-              echo "No prebuilt golang package found, continuing without it"
-            fi
-          else
-            echo "No main golang compiler package found in prebuilt directory, continuing without it"
-          fi
+      #         # Install the prebuilt package
+      #         cd "${SDK_PATH}"
+      #         ./scripts/feeds update -a
+      #         ./scripts/feeds install golang
+      #       else
+      #         echo "No prebuilt golang package found, continuing without it"
+      #       fi
+      #     else
+      #       echo "No main golang compiler package found in prebuilt directory, continuing without it"
+      #     fi
           
-          echo "Examining package dump files..."
+      #     echo "Examining package dump files..."
 
 
       - name: Checkout SDK
