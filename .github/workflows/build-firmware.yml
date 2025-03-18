@@ -16,8 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Basic setup steps that don't depend on anything
-
+      
       - name: Test Blossom Upload with Simple File
         run: |
           # Create a simple test file
@@ -38,7 +37,7 @@ jobs:
           filePath: test.txt
           nostrPrivateKey: ${{ secrets.NSECBECH }}
 
-      - name: Report Test File URL
+      - name: Report Test File URLa
         run: |
           echo "Test file uploaded to: ${{ steps.upload_test.outputs.url }}"
           echo "Test file hash: ${{ steps.upload_test.outputs.hash }}"
@@ -52,7 +51,6 @@ jobs:
           else
             echo "Hashes match! File integrity preserved during upload."
           fi
-
 
   build:
     runs-on: ubuntu-latest
@@ -98,7 +96,7 @@ jobs:
           model: ${{ matrix.target.model }}
           platform: ${{ matrix.target.platform }}
           subtarget: ${{ matrix.target.subtarget }}
-          prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt/golang*.ipk' || '' }}
+          prebuilt_golang: ${{ github.event_name == 'workflow_run' && 'prebuilt' || '' }}
           module: ${{ matrix.module }}
 
       - name: Debug Package Path
@@ -111,6 +109,24 @@ jobs:
             PACKAGE_HASH=$(sha256sum "${{ env.PACKAGE_FULLPATH }}" | cut -d' ' -f1)
             echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
             echo "Original package hash: $PACKAGE_HASH"
+            
+            # Get file size
+            FILE_SIZE=$(stat -c%s "${{ env.PACKAGE_FULLPATH }}")
+            echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_ENV
+            
+            # Extract module name from the package name (remove tollgate-module- prefix)
+            MODULE_NAME=$(echo "${{ matrix.module }}" | sed 's/tollgate-module-//;s/-go//')
+            echo "MODULE_NAME=$MODULE_NAME" >> $GITHUB_ENV
+            
+            # Map target architecture to release.json architecture format
+            if [[ "${{ matrix.target.platform }}" == "ath79" ]]; then
+              ARCH="mipsel_24kc"
+            elif [[ "${{ matrix.target.platform }}" == "mediatek" ]]; then
+              ARCH="aarch64_cortex-a53"
+            else
+              ARCH="unknown"
+            fi
+            echo "ARCH=$ARCH" >> $GITHUB_ENV
           else
             echo "Warning: No package path found in environment"
           fi
@@ -189,3 +205,97 @@ jobs:
             echo "Downloaded hash: $DOWNLOADED_HASH"
             echo "This indicates the file was modified during upload or download."
           fi
+
+      - name: Publish Package NIP-94 Metadata
+        id: publish_package
+        if: steps.upload_package.outputs.success == 'true'
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_package.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_package.outputs.hash }}
+          originalHash: ${{ env.PACKAGE_HASH }}
+          filename: ${{ env.MODULE_NAME }}-${{ matrix.target.model }}-${{ env.ARCH }}.ipk
+          content: "TollGate Module Package: ${{ env.MODULE_NAME }} for ${{ matrix.target.model }}"
+          nsec: ${{ secrets.NSEC }}
+          size: ${{ env.FILE_SIZE }}
+          architecture: ${{ env.ARCH }}
+          model: ${{ matrix.target.model }}
+          module: ${{ env.MODULE_NAME }}
+          version: "0.0.1"
+
+      - name: Verify Package NIP-94 Event
+        id: verify_package
+        if: steps.publish_package.outputs.eventId != ''
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
+        with:
+          eventId: ${{ steps.publish_package.outputs.eventId }}
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+
+  #     - name: Create Event JSON File
+  #       if: steps.publish_package.outputs.eventId != ''
+  #       run: |
+  #         # Create a JSON file with the event information
+  #         echo '{
+  #           "eventId": "${{ steps.publish_package.outputs.eventId }}",
+  #           "hash": "${{ steps.upload_package.outputs.hash }}",
+  #           "url": "${{ steps.upload_package.outputs.url }}",
+  #           "module": "${{ env.MODULE_NAME }}",
+  #           "model": "${{ matrix.target.model }}",
+  #           "architecture": "${{ env.ARCH }}"
+  #         }' > event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json
+          
+  #         # Upload the event file as an artifact
+  #         mkdir -p event-artifacts
+  #         cp event-${{ env.MODULE_NAME }}-${{ matrix.target.model }}.json event-artifacts/
+
+  #     - name: Upload Event Artifact
+  #       if: steps.publish_package.outputs.eventId != ''
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ${{ env.MODULE_NAME }}-${{ matrix.target.model }}-event
+  #         path: event-artifacts/
+  #         retention-days: 5
+
+  # trigger-release-update:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: success()
+  #   steps:
+  #     - name: Download All Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: artifacts
+
+  #     - name: Collect NIP-94 Event Data
+  #       id: collect_events
+  #       run: |
+  #         # Create a JSON file with all event data
+  #         echo "{\"events\": [" > events.json
+          
+  #         # Find all event JSON files and combine them
+  #         FIRST=true
+  #         for EVENT_FILE in $(find artifacts -name "*-event.json"); do
+  #           if [ "$FIRST" = "true" ]; then
+  #             FIRST=false
+  #           else
+  #             echo "," >> events.json
+  #           fi
+  #           cat $EVENT_FILE >> events.json
+  #         done
+          
+  #         echo "]}" >> events.json
+          
+  #         # Store the event data for the next step
+  #         EVENT_DATA=$(cat events.json)
+  #         echo "event_data<<EOF" >> $GITHUB_ENV
+  #         echo "$EVENT_DATA" >> $GITHUB_ENV
+  #         echo "EOF" >> $GITHUB_ENV
+
+      - name: Trigger OS Workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: OpenTollGate/tollgate-os
+          event-type: update-release-json

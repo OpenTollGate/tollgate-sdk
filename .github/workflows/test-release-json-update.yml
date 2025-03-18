@@ -1,0 +1,190 @@
+name: Test Release JSON Update
+
+on:
+  push:
+    branches:
+      - update-release-json
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Comma-separated list of modules to include'
+        required: false
+        default: 'relay,valve,whoami'
+      models:
+        description: 'Comma-separated list of models to include'
+        required: false
+        default: 'gl-ar300m,gl-mt3000,gl-mt6000'
+
+jobs:
+  generate-real-events:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SDK
+        uses: actions/checkout@v4
+        with:
+          path: sdk
+
+      - name: Create Test Packages
+        run: |
+          CURRENT_TIME=$(date +%s)
+          PACKAGE_INDEX=1
+          # Create packages for three models
+          for MODEL_ARCH in "gl-ar300m:mipsel_24kc" "gl-mt3000:aarch64_cortex-a53" "gl-mt6000:aarch64_cortex-a53"; do
+            IFS=':' read -ra MA <<< "$MODEL_ARCH"
+            MODEL=${MA[0]}
+            ARCH=${MA[1]}
+            
+            FILENAME="valve-${MODEL}-${ARCH}.ipk"
+            echo "Creating $FILENAME"
+            echo "Valve package for ${MODEL} (${ARCH}) created at ${CURRENT_TIME}" > $FILENAME
+            echo "Created package: $(pwd)/$FILENAME"
+            
+            # Store package paths and filename for upload
+            echo "PACKAGE${PACKAGE_INDEX}_FULLPATH=$(pwd)/$FILENAME" >> $GITHUB_ENV
+            echo "MODEL${PACKAGE_INDEX}=${MODEL}" >> $GITHUB_ENV
+            echo "ARCH${PACKAGE_INDEX}=${ARCH}" >> $GITHUB_ENV
+            echo "FILENAME${PACKAGE_INDEX}=$FILENAME" >> $GITHUB_ENV
+            PACKAGE_INDEX=$((PACKAGE_INDEX + 1))
+          done
+          
+          echo "CURRENT_TIME=${CURRENT_TIME}" >> $GITHUB_ENV
+
+      - name: Upload Test Packages to Blossom
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE1_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+          
+      - name: Upload Test Packages to Blossom
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE2_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+          
+      - name: Upload Test Packages to Blossom
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE3_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+
+      - name: Generate NIP-94 Event for Package 1
+        id: generate_event_1
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: ${{ env.FILENAME1 }}
+          content: "Test Module Package 1"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE1_FULLPATH }}")
+          architecture: ${{ env.ARCH1 }}
+          model: ${{ env.MODEL1 }}
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Generate NIP-94 Event for Package 2
+        id: generate_event_2
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: ${{ env.FILENAME2 }}
+          content: "Test Module Package 2"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE2_FULLPATH }}")
+          architecture: ${{ env.ARCH2 }}
+          model: ${{ env.MODEL2 }}
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Generate NIP-94 Event for Package 3
+        id: generate_event_3
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: ${{ env.FILENAME3 }}
+          content: "Test Module Package 3"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE3_FULLPATH }}")
+          architecture: ${{ env.ARCH3 }}
+          model: ${{ env.MODEL3 }}
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Verify NIP-94 Event
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python/verify@main
+        with:
+          eventId: ${{ steps.generate_event.outputs.eventId }}
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+
+      - name: Install nak
+        run: |
+          sudo wget https://github.com/fiatjaf/nak/releases/download/v0.12.4/nak-v0.12.4-linux-amd64 -O /usr/local/bin/nak
+          sudo chmod +x /usr/local/bin/nak
+
+      - name: Verify Event on Network with nak
+        run: |
+          # Get the pubkey from secrets
+          PUBKEY="${{ secrets.NIP_94_PUBKEY }}"
+          GENERATED_HASH="${{ steps.upload_test.outputs.hash }}"
+          
+          if [ -z "$PUBKEY" ]; then
+            echo "::error::NIP_94_PUBKEY secret is not set"
+            exit 1
+          fi
+          
+          echo "Fetching recent NIP-94 events for pubkey: $PUBKEY"
+          
+          # Query events by author and kind (1063 for NIP-94)
+          nak req -a "$PUBKEY" -k 1063 --limit 10 wss://relay.damus.io > event_response.txt
+          
+          # Check for errors in the response
+          if grep -q "ERROR" event_response.txt; then
+            echo "::error::Error retrieving events from relay:"
+            cat event_response.txt
+            exit 1
+          fi
+          
+          # Extract only the event data (removing connection messages)
+          cat event_response.txt | grep -v "connecting to" | grep -v "NOTICE" > events_data.txt
+          
+          # Look for our event with matching hash
+          echo "Looking for event with hash: $GENERATED_HASH"
+          
+          # Extract unique filenames and architectures from the events
+          echo "Extracting unique filenames and architectures from events..."
+          
+          # Create temporary files to store unique values
+          touch unique_filenames.txt
+          touch unique_architectures.txt
+          
+          # Process each event to extract filename and architecture tags
+          cat events_data.txt | jq -r '.tags[] | select(.[0] == "filename") | .[1]' | sort | uniq > unique_filenames.txt
+          cat events_data.txt | jq -r '.tags[] | select(.[0] == "arch") | .[1]' | sort | uniq > unique_architectures.txt
+          
+          echo "Unique filenames found in the last week:"
+          cat unique_filenames.txt
+          
+          echo "Unique architectures found in the last week:"
+          cat unique_architectures.txt
+          
+          echo "✅ Successfully analyzed events on network!"
+
+
+      - name: Trigger OS Workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: OpenTollGate/tollgate-os
+          event-type: update-release-json
+          
