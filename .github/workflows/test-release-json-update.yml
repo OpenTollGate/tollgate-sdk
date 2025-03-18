@@ -121,3 +121,21 @@ jobs:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
           event-type: test-update-release-json
+          client-payload: |
+            {
+              "run_id": "${{ github.run_id }}",
+              "nip94_events": {
+                "events": [
+                  {
+                    "eventId": "${{ steps.generate_event.outputs.eventId }}",
+                    "hash": "${{ steps.upload_test.outputs.hash }}",
+                    "url": "${{ steps.upload_test.outputs.url }}",
+                    "module": "test-module",
+                    "model": "gl-mt3000",
+                    "architecture": "aarch64_cortex-a53",
+                    "filename": "test-package-${{ env.CURRENT_TIME }}.ipk"
+                  }
+                ]
+              },
+              "branch": "develop"
+            }
