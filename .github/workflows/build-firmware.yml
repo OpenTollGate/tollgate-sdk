@@ -83,6 +83,43 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           continue-on-error: true
 
+      - name: Debug Download Directory
+        run: |
+          echo "Input value: '${{ inputs.prebuilt_golang }}'"
+          mkdir -p prebuilt  # Create the directory if it doesn't exist
+          ls -la .
+          ls -la prebuilt || echo "Prebuilt directory is empty"
+
+      - name: Setup Build Environment
+        shell: bash
+        run: |
+          # Check if prebuilt_golang input is not empty AND the directory exists
+          if [ -n "${{ inputs.prebuilt_golang }}" ] && [ -d "${{ inputs.prebuilt_golang }}" ]; then
+            echo "Using prebuilt golang package from directory: ${{ inputs.prebuilt_golang }}"
+            mkdir -p "${SDK_PATH}/bin/packages/${PLATFORM}"
+            
+            # Find the golang IPK file in the specified directory
+            GOLANG_IPK=$(find "${{ inputs.prebuilt_golang }}" -name "golang*.ipk" | head -1)
+            
+            if [ -n "$GOLANG_IPK" ] && [ -f "$GOLANG_IPK" ]; then
+              echo "Found prebuilt golang package: $GOLANG_IPK"
+              cp "$GOLANG_IPK" "${SDK_PATH}/bin/packages/${PLATFORM}/"
+              echo "Copied golang package to SDK"
+              
+              # Install the prebuilt package
+              cd "${SDK_PATH}"
+              ./scripts/feeds update -a
+              ./scripts/feeds install golang
+            else
+              echo "No prebuilt golang package found, continuing without it"
+            fi
+          else
+            echo "No prebuilt golang directory available, continuing without it"
+          fi
+          
+          echo "Examining package dump files..."
+
+
       - name: Checkout SDK
         uses: actions/checkout@v4
         with:
