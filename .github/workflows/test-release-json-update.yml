@@ -94,37 +94,25 @@ jobs:
           
           # Look for our event with matching hash
           echo "Looking for event with hash: $GENERATED_HASH"
-
-          cat events_data.txt
           
-          # # Process each event to find the one with our hash
-          # FOUND_EVENT=$(cat events_data.txt | jq -c --arg hash "$GENERATED_HASH" '.tags[] | select(.[0] == "x" and .[1] == $hash) | input')
+          # Extract unique filenames and architectures from the events
+          echo "Extracting unique filenames and architectures from events..."
           
-          # if [ -z "$FOUND_EVENT" ]; then
-          #   echo "::warning::No event with matching hash found. Recent events:"
-          #   cat events_data.txt | jq .
-          #   exit 1
-          # fi
+          # Create temporary files to store unique values
+          touch unique_filenames.txt
+          touch unique_architectures.txt
           
-          # echo "Found matching event:"
-          # echo "$FOUND_EVENT" | jq .
+          # Process each event to extract filename and architecture tags
+          cat events_data.txt | jq -r '.tags[] | select(.[0] == "filename") | .[1]' | sort | uniq > unique_filenames.txt
+          cat events_data.txt | jq -r '.tags[] | select(.[0] == "arch") | .[1]' | sort | uniq > unique_architectures.txt
           
-          # # Save the event ID for future reference
-          # FOUND_EVENT_ID=$(echo "$FOUND_EVENT" | jq -r '.id')
-          # echo "Event ID: $FOUND_EVENT_ID"
-          # echo "$FOUND_EVENT_ID" > found_event_id.txt
+          echo "Unique filenames found in the last week:"
+          cat unique_filenames.txt
           
-          # # Create a properly formatted event JSON
-          # echo "{
-          #   \"eventId\": \"$FOUND_EVENT_ID\",
-          #   \"hash\": \"$GENERATED_HASH\",
-          #   \"url\": \"$(echo "$FOUND_EVENT" | jq -r '.tags[] | select(.[0] == "url") | .[1]')\",
-          #   \"module\": \"test-module\",
-          #   \"model\": \"gl-mt3000\",
-          #   \"architecture\": \"aarch64_cortex-a53\"
-          # }" > found_event.json
+          echo "Unique architectures found in the last week:"
+          cat unique_architectures.txt
           
-          echo "✅ Successfully found and verified event on network!"
+          echo "✅ Successfully analyzed events on network!"
 
           
       # - name: Trigger OS Workflow
