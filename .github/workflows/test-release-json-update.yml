@@ -115,19 +115,9 @@ jobs:
           echo "✅ Successfully analyzed events on network!"
 
           
-      # - name: Trigger OS Workflow
-      #   uses: peter-evans/repository-dispatch@v2
-      #   with:
-      #     token: ${{ secrets.REPO_ACCESS_TOKEN }}
-      #     repository: OpenTollGate/tollgate-os
-      #     event-type: update-release-json
-      #     client-payload: |
-      #       {
-      #         "nip94_events": {
-      #           "events": [
-      #             $(cat ${{ env.EVENT_PATH }})
-      #           ]
-      #         },
-      #         "branch": "develop",
-      #         "is_test": true
-      #       }
+      - name: Trigger OS Workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: OpenTollGate/tollgate-os
+          event-type: update-release-json
