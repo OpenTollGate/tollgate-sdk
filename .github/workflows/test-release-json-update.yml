@@ -120,4 +120,4 @@ jobs:
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: OpenTollGate/tollgate-os
-          event-type: develop
+          event-type: test-update-release-json
