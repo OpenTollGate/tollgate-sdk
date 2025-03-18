@@ -37,7 +37,7 @@ jobs:
           filePath: test.txt
           nostrPrivateKey: ${{ secrets.NSECBECH }}
 
-      - name: Report Test File URL
+      - name: Report Test File URLa
         run: |
           echo "Test file uploaded to: ${{ steps.upload_test.outputs.url }}"
           echo "Test file hash: ${{ steps.upload_test.outputs.hash }}"

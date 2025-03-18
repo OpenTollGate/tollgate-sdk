@@ -24,35 +24,100 @@ jobs:
         with:
           path: sdk
 
-      - name: Create Test Package
+      - name: Create Test Packages
         run: |
           CURRENT_TIME=$(date +%s)
-          echo "This is a test package created at ${CURRENT_TIME}" > test-package-${CURRENT_TIME}.ipk
-          echo "PACKAGE_FULLPATH=$(pwd)/test-package-${CURRENT_TIME}.ipk" >> $GITHUB_ENV
+          PACKAGE_INDEX=1
+          # Create packages for three models
+          for MODEL_ARCH in "gl-ar300m:mipsel_24kc" "gl-mt3000:aarch64_cortex-a53" "gl-mt6000:aarch64_cortex-a53"; do
+            IFS=':' read -ra MA <<< "$MODEL_ARCH"
+            MODEL=${MA[0]}
+            ARCH=${MA[1]}
+            
+            FILENAME="relay-${MODEL}-${ARCH}.ipk"
+            echo "Creating $FILENAME"
+            echo "Relay package for ${MODEL} (${ARCH}) created at ${CURRENT_TIME}" > $FILENAME
+            echo "Created package: $(pwd)/$FILENAME"
+            
+            # Store package paths and filename for upload
+            echo "PACKAGE${PACKAGE_INDEX}_FULLPATH=$(pwd)/$FILENAME" >> $GITHUB_ENV
+            echo "MODEL${PACKAGE_INDEX}=${MODEL}" >> $GITHUB_ENV
+            echo "ARCH${PACKAGE_INDEX}=${ARCH}" >> $GITHUB_ENV
+            echo "FILENAME${PACKAGE_INDEX}=$FILENAME" >> $GITHUB_ENV
+            PACKAGE_INDEX=$((PACKAGE_INDEX + 1))
+          done
+          
           echo "CURRENT_TIME=${CURRENT_TIME}" >> $GITHUB_ENV
 
-      - name: Upload Test Package to Blossom
-        id: upload_test
+      - name: Upload Test Packages to Blossom
         uses: c03rad0r/cli-blossom-uploader-go@main
         with:
           host: "https://blossom.swissdash.site"
-          filePath: ${{ env.PACKAGE_FULLPATH }}
+          filePath: ${{ env.PACKAGE1_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+          
+      - name: Upload Test Packages to Blossom
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE2_FULLPATH }}
+          nostrPrivateKey: ${{ secrets.NSECBECH }}
+          
+      - name: Upload Test Packages to Blossom
+        uses: c03rad0r/cli-blossom-uploader-go@main
+        with:
+          host: "https://blossom.swissdash.site"
+          filePath: ${{ env.PACKAGE3_FULLPATH }}
           nostrPrivateKey: ${{ secrets.NSECBECH }}
 
-      - name: Generate NIP-94 Event
-        id: generate_event
+      - name: Generate NIP-94 Event for Package 1
+        id: generate_event_1
         uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
         with:
           relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
           url: ${{ steps.upload_test.outputs.url }}
           mimeType: application/octet-stream
           fileHash: ${{ steps.upload_test.outputs.hash }}
-          filename: "test-package-${CURRENT_TIME}.ipk"
-          content: "Test Module Package"
+          filename: ${{ env.FILENAME1 }}
+          content: "Test Module Package 1"
           nsec: ${{ secrets.NSEC }}
-          size: $(stat -c%s "${{ env.PACKAGE_FULLPATH }}")
-          architecture: "aarch64_cortex-a53"
-          model: "gl-mt3000"
+          size: $(stat -c%s "${{ env.PACKAGE1_FULLPATH }}")
+          architecture: ${{ env.ARCH1 }}
+          model: ${{ env.MODEL1 }}
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Generate NIP-94 Event for Package 2
+        id: generate_event_2
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: ${{ env.FILENAME2 }}
+          content: "Test Module Package 2"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE2_FULLPATH }}")
+          architecture: ${{ env.ARCH2 }}
+          model: ${{ env.MODEL2 }}
+          module: "test-module"
+          version: "0.0.1"
+
+      - name: Generate NIP-94 Event for Package 3
+        id: generate_event_3
+        uses: OpenTollGate/nostr-publish-file-metadata-action/python@main
+        with:
+          relays: wss://relay.damus.io,wss://nos.lol,wss://nostr.mom/
+          url: ${{ steps.upload_test.outputs.url }}
+          mimeType: application/octet-stream
+          fileHash: ${{ steps.upload_test.outputs.hash }}
+          filename: ${{ env.FILENAME3 }}
+          content: "Test Module Package 3"
+          nsec: ${{ secrets.NSEC }}
+          size: $(stat -c%s "${{ env.PACKAGE3_FULLPATH }}")
+          architecture: ${{ env.ARCH3 }}
+          model: ${{ env.MODEL3 }}
           module: "test-module"
           version: "0.0.1"
 
@@ -115,7 +180,7 @@ jobs:
           
           echo "✅ Successfully analyzed events on network!"
 
-          
+
       - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
         with:
