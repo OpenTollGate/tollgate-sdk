@@ -34,9 +34,9 @@ jobs:
             MODEL=${MA[0]}
             ARCH=${MA[1]}
             
-            FILENAME="relay-${MODEL}-${ARCH}.ipk"
+            FILENAME="valve-${MODEL}-${ARCH}.ipk"
             echo "Creating $FILENAME"
-            echo "Relay package for ${MODEL} (${ARCH}) created at ${CURRENT_TIME}" > $FILENAME
+            echo "Valve package for ${MODEL} (${ARCH}) created at ${CURRENT_TIME}" > $FILENAME
             echo "Created package: $(pwd)/$FILENAME"
             
             # Store package paths and filename for upload
