@@ -65,7 +65,7 @@ jobs:
           #"tollgate-module-merchant-go",
           #"tollgate-module-valve-go",
           #"tollgate-module-whoami-go",
-          #"tollgate-module-janitor-go",
+          "tollgate-module-janitor-go"#,
           #"tollgate-module-crowsnest-go"
         ]
         target: [
