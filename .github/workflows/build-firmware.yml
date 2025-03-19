@@ -64,11 +64,11 @@ jobs:
       matrix:
         module: [
           "tollgate-module-relay-go",
-          #"tollgate-module-merchant-go",
+          "tollgate-module-merchant-go",
           #"tollgate-module-valve-go",
           #"tollgate-module-whoami-go",
-          "tollgate-module-janitor-go"#,
-          #"tollgate-module-crowsnest-go"
+          "tollgate-module-janitor-go",
+          "tollgate-module-crowsnest-go"
         ]
         target: [
           {model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
