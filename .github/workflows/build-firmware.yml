@@ -338,7 +338,9 @@ jobs:
   #         echo "event_data<<EOF" >> $GITHUB_ENV
   #         echo "$EVENT_DATA" >> $GITHUB_ENV
   #         echo "EOF" >> $GITHUB_ENV
-
+  install-os:
+    runs-on: ubuntu-latest
+    steps:
       - name: Trigger OS Workflow
         uses: peter-evans/repository-dispatch@v2
         with:
