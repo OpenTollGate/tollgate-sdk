@@ -60,10 +60,33 @@ jobs:
         run: |
           VERSION=23.05.3
           SDKDIR=/tmp/openwrt-sdk
+          # Add case for gl-ar300m16
+          case "$MODEL" in
+            "gl-ar300m16")
+              PLATFORM="ath79"
+              SUBTARGET="generic"
+              ;;
+            "gl-ar300m-nor")
+              PLATFORM="ath79"
+              SUBTARGET="generic"
+              ;;
+            "gl-mt3000"|"gl-mt6000")
+              PLATFORM="mediatek"
+              SUBTARGET="filogic"
+              ;;
+            *)
+              echo "Unsupported model: $MODEL"
+              exit 1
+              ;;
+          esac
+          
+          # Export variables after case statement
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+          echo "SUBTARGET=$SUBTARGET" >> $GITHUB_ENV
+          
           SDK_ARCHIVE="openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
           DOWNLOAD_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/${PLATFORM}/${SUBTARGET}/${SDK_ARCHIVE}"
           SDK_PATH="${SDKDIR}/openwrt-sdk-${VERSION}-${PLATFORM}-${SUBTARGET}_gcc-12.3.0_musl.Linux-x86_64"
-          # Make SDK_PATH available to other steps
           echo "SDK_PATH=${SDK_PATH}" >> "$GITHUB_ENV"
           
           mkdir -p "${SDKDIR}"
@@ -73,7 +96,6 @@ jobs:
           echo "Extracting SDK..."
           tar -I "xz -T0" -xf "${SDKDIR}/${SDK_ARCHIVE}" -C "${SDKDIR}"
           
-          # Create necessary SDK directories
           mkdir -p "${SDK_PATH}/include"
           mkdir -p "${SDK_PATH}/bin/packages/$PLATFORM"
 
