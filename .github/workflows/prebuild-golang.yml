@@ -18,7 +18,7 @@ jobs:
       matrix:
         target: [
           {model: "gl-ar300m16", platform: "ath79", subtarget: "generic"},
-          {model: "gl-ar300m-nand", platform: "ath79", subtarget: "generic"},
+          {model: "gl-ar300m-nor", platform: "ath79", subtarget: "generic"},
           {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"},
           {model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
         ]
