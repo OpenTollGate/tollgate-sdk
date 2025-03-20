@@ -484,3 +484,22 @@ runs:
         echo "ERROR: Package file not found at $PACKAGE_FULLPATH"
         exit 1
       fi
+
+  - name: Validate IPK Structure
+    shell: bash
+    run: |
+      if [ -f "$PACKAGE_FULLPATH" ]; then
+        echo "Validating IPK file structure..."
+        ar t "$PACKAGE_FULLPATH" || (echo "Invalid ar archive"; exit 1)
+        ar x "$PACKAGE_FULLPATH"
+        echo "Control.tar.gz contents:"
+        tar -ztvf control.tar.gz
+        echo "Data.tar.gz contents:"
+        tar -ztvf data.tar.gz
+        echo "Debian-binary version:"
+        cat debian-binary
+        rm -f control.tar.gz data.tar.gz debian-binary
+      else
+        echo "IPK file not found!"
+        exit 1
+      fi
