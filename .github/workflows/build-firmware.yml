@@ -344,7 +344,7 @@ jobs:
   #         echo "$EVENT_DATA" >> $GITHUB_ENV
   #         echo "EOF" >> $GITHUB_ENV
   install-os:
-    needs: build
+    needs: build-package
     runs-on: ubuntu-latest
     steps:
       - name: Trigger OS Workflow
