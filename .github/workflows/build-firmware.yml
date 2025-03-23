@@ -63,7 +63,8 @@ jobs:
     strategy:
       matrix:
         module: [
-          "tollgate-module-relay-go"#,
+          "tollgate-module-relay-go",
+          "tollgate-module-basic-go",
           #"tollgate-module-merchant-go",
           #"tollgate-module-valve-go",
           #"tollgate-module-whoami-go",
