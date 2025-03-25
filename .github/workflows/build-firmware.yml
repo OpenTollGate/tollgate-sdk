@@ -63,7 +63,7 @@ jobs:
     strategy:
       matrix:
         module: [
-          "tollgate-module-relay-go",
+          #"tollgate-module-relay-go",
           "tollgate-module-basic-go",
           #"tollgate-module-merchant-go",
           #"tollgate-module-valve-go",
@@ -72,9 +72,9 @@ jobs:
           #"tollgate-module-crowsnest-go"
         ]
         target: [
-          #{model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
-          {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"}#,
-          #{model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
+          {model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
+          {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"},
+          {model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
         ]
     steps:
       - name: Download Prebuilt Golang

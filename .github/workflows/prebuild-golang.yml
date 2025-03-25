@@ -17,9 +17,10 @@ jobs:
     strategy:
       matrix:
         target: [
-          #{model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
-          {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic"}#,
-          #{model: "gl-mt6000", platform: "mediatek", subtarget: "filogic"}
+          {model: "gl-ar300m", platform: "ath79", subtarget: "generic"},
+          {model: "gl-ar300m16", platform: "ath79", subtarget: "generic"},
+          {model: "gl-mt3000", platform: "mediatek", subtarget: "filogic", arch: "aarch64_cortex-a53", profile: "glinet_gl-mt3000"},
+          {model: "gl-mt6000", platform: "mediatek", subtarget: "filogic", arch: "aarch64_cortex-a53", profile: "glinet_gl-mt6000"}
         ]
       fail-fast: false
     
@@ -56,6 +57,8 @@ jobs:
           MODEL: ${{ matrix.target.model }}
           PLATFORM: ${{ matrix.target.platform }}
           SUBTARGET: ${{ matrix.target.subtarget }}
+          ARCH: ${{ matrix.target.arch }}
+          PROFILE: ${{ matrix.target.profile }}
         run: |
           VERSION=23.05.3
           SDKDIR=/tmp/openwrt-sdk
@@ -107,6 +110,8 @@ jobs:
         env:
           PLATFORM: ${{ matrix.target.platform }}
           SUBTARGET: ${{ matrix.target.subtarget }}
+          ARCH: ${{ matrix.target.arch }}
+          PROFILE: ${{ matrix.target.profile }}
           # Explicitly set SDK_PATH from the environment
           SDK_PATH: ${{ env.SDK_PATH }}
         run: |
